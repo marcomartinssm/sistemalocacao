@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Locação</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f7f6f2;--surface:#ffffff;--border:#e4e2dc;--text:#1a1916;--muted:#6b6a65;--hint:#a09e98;--accent:#2a5cff;--accent-bg:#eef1ff;--green:#1a7a4a;--green-bg:#e6f5ed;--red:#c0392b;--red-bg:#fdecea;--amber:#b45309;--amber-bg:#fef3e2;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+.sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:28px 16px 24px;z-index:100}
+.logo{font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-bottom:32px;display:flex;align-items:center;gap:8px}
+.nav{flex:1;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;border:none;background:none;text-align:left;width:100%}
+.nav-item:hover{color:var(--text);background:var(--bg)}
+.nav-item.active{color:var(--accent);background:var(--accent-bg)}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--hint);text-transform:uppercase;padding:16px 12px 6px}
+.sidebar-footer{font-size:11px;color:var(--hint);border-top:1px solid var(--border);padding-top:16px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#b45309;display:inline-block;margin-right:4px}
+.main{margin-left:220px;padding:36px 40px;min-height:100vh}
+.page{display:none}
+.page.active{display:block}
+.page-header{margin-bottom:28px}
+.page-title{font-size:22px;font-weight:600}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.month-picker{display:flex;align-items:center;gap:8px}
+.month-picker label{font-size:12px;color:var(--muted)}
+select.month-sel{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;outline:none}
+select.month-sel:focus{border-color:var(--accent)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+.kpi-label{font-size:11px;font-weight:500;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.kpi-input{width:100%;background:transparent;border:none;font-size:32px;font-weight:600;font-family:monospace;color:var(--text);outline:none;border-bottom:2px solid transparent;transition:border-color .15s;padding:0;line-height:1}
+.kpi-input:focus{border-bottom-color:var(--accent)}
+.kpi-hint{font-size:11px;color:var(--hint);margin-top:8px}
+.kpi-saldo{background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%);border-color:#c8d4ff}
+.kpi-saldo .kpi-value{color:var(--accent);font-size:32px;font-weight:600;font-family:monospace;line-height:1}
+.kpi-saldo.neg{background:linear-gradient(135deg,#fff0ef 0%,#ffe8e7 100%);border-color:#ffc8c4}
+.kpi-saldo.neg .kpi-value{color:var(--red)}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.chart-card h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:20px}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px}
+.bar{border-radius:4px 4px 0 0;transition:height .4s ease;min-height:2px}
+.bar-label{font-size:10px;color:var(--hint)}
+.bar-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.bar-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.bar-legend-dot{width:8px;height:8px;border-radius:2px}
+.save-bar{display:flex;align-items:center;gap:12px;margin-top:24px}
+.btn-save{padding:9px 22px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn-save:hover{opacity:.85}
+.save-msg{font-size:12px;color:var(--green);opacity:0;transition:opacity .3s}
+.save-msg.err{color:var(--red)}
+.loading-msg{font-size:12px;color:var(--hint)}
+.toolbar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.btn-add{padding:8px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-add:hover{background:var(--accent);color:#fff}
+.filter-sel{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;outline:none}
+.summary-text{font-size:12px;color:var(--hint);margin-left:auto}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg)}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafaf8}
+.td-input{width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:13.5px;outline:none}
+.td-input:focus{border-bottom:1px solid var(--accent)}
+.td-sel{background:transparent;border:none;color:var(--text);font-family:inherit;font-size:13px;outline:none;cursor:pointer}
+.pill{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.pill-pending{background:var(--amber-bg);color:var(--amber)}
+.pill-progress{background:var(--accent-bg);color:var(--accent)}
+.pill-done{background:var(--green-bg);color:var(--green)}
+.pill-high{background:var(--red-bg);color:var(--red);font-size:10px;padding:2px 8px}
+.pill-mid{background:var(--amber-bg);color:var(--amber);font-size:10px;padding:2px 8px}
+.pill-low{background:#f0f0ee;color:var(--muted);font-size:10px;padding:2px 8px}
+.del-btn{background:none;border:none;color:var(--hint);font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;transition:all .15s}
+.del-btn:hover{color:var(--red);background:var(--red-bg)}
+.empty-row td{text-align:center;padding:40px;color:var(--hint);font-size:13px}
+.config-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;max-width:540px;box-shadow:var(--shadow);margin-bottom:20px}
+.config-card h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.config-card p{font-size:13px;color:var(--muted);margin-bottom:20px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.form-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-family:monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.conn-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 12px;border-radius:20px}
+.conn-ok{background:var(--green-bg);color:var(--green)}
+.conn-err{background:var(--red-bg);color:var(--red)}
+.conn-pending{background:var(--amber-bg);color:var(--amber)}
+.info-box{background:var(--accent-bg);border:1px solid #c8d4ff;border-radius:8px;padding:14px 16px;font-size:12px;color:#1e3a8a;margin-top:16px;line-height:1.7}
+.info-box strong{display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="1" y="1" width="7" height="7" rx="2" fill="currentColor"/>
+      <rect x="10" y="1" width="7" height="7" rx="2" fill="currentColor" opacity=".5"/>
+      <rect x="1" y="10" width="7" height="7" rx="2" fill="currentColor" opacity=".5"/>
+      <rect x="10" y="10" width="7" height="7" rx="2" fill="currentColor"/>
+    </svg>
+    Gestão Locação
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Indicadores</div>
+    <button class="nav-item active" id="nav-admin">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h2v2H2v-2zm4-4h2v6H6V8zm4-4h2v10h-2V4z" fill="currentColor"/></svg>
+      Administrativo
+    </button>
+    <button class="nav-item" id="nav-comercial">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L10.5 6H15L11.5 9.5L13 14L8 11L3 14L4.5 9.5L1 6H5.5L8 1z" fill="currentColor" opacity=".8"/></svg>
+      Comercial
+    </button>
+    <div class="nav-section">Gestão</div>
+    <button class="nav-item" id="nav-acoes">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="8" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="10" height="1.5" rx=".75" fill="currentColor"/></svg>
+      Plano de Ação
+    </button>
+    <div class="nav-section">Gestão</div>
+    <button class="nav-item" id="nav-comissoes">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.75 10.5h-1.5v-1.5h1.5v1.5zm0-3h-1.5V4.5h1.5V8.5z" fill="currentColor" opacity=".8"/></svg>
+      Comissões
+    </button>
+    <div class="nav-section">Sistema</div>
+    <button class="nav-item" id="nav-config">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Configurações
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="status-dot" id="conn-dot"></span>
+    <span id="conn-label">Verificando...</span>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- ADMINISTRATIVO -->
+  <div class="page active" id="page-admin">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Administrativo</div><div class="page-sub">Indicadores de contratos e rescisões</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="admin-month"></select></div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Contratos ativos</div><div class="kpi-value" id="a-ativos-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><input type="hidden" id="a-ativos"><div class="kpi-hint" id="a-ativos-hint">Calculado automaticamente</div></div>
+      <div class="kpi"><div class="kpi-label">Alugados no mês</div><input class="kpi-input" id="a-alugados" type="number" min="0" placeholder="0"><div class="kpi-hint">Novas locações efetivadas</div></div>
+      <div class="kpi"><div class="kpi-label">Rescisões no mês</div><input class="kpi-input" id="a-rescisoes" type="number" min="0" placeholder="0"><div class="kpi-hint">Contratos encerrados</div></div>
+      <div class="kpi kpi-saldo" id="kpi-saldo-admin"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="a-saldo">—</div><div class="kpi-hint">Alugados menos rescisões</div></div>
+    </div>
+    <div class="chart-card"><h3>Histórico dos últimos 6 meses</h3><div class="bar-chart" id="admin-chart"></div><div class="bar-legend"><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#2a5cff"></div>Alugados</div><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#fca5a5"></div>Rescisões</div></div></div>
+    <div class="save-bar">
+      <button class="btn-save" id="btn-save-admin">Salvar dados</button>
+      <span class="loading-msg" id="admin-loading" style="display:none">Salvando...</span>
+      <span class="save-msg" id="admin-ok">✓ Salvo com sucesso</span>
+    </div>
+  </div>
+
+  <!-- COMERCIAL -->
+  <div class="page" id="page-comercial">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Comercial</div><div class="page-sub">Disponibilidade e captação de imóveis</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="com-month"></select></div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Imóveis disponíveis</div><div class="kpi-value" id="c-disponiveis-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><input type="hidden" id="c-disponiveis"><div class="kpi-hint" id="c-disponiveis-hint">Calculado automaticamente</div></div>
+      <div class="kpi"><div class="kpi-label">Novas captações</div><input class="kpi-input" id="c-captacoes" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis captados no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><input class="kpi-input" id="c-retiradas" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retirados da carteira</div></div>
+      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><input class="kpi-input" id="c-reagenciados" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retomados para carteira</div></div>
+      <div class="kpi kpi-saldo" id="kpi-saldo-com"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="c-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
+    </div>
+    <div class="chart-card"><h3>Histórico dos últimos 6 meses</h3><div class="bar-chart" id="com-chart"></div><div class="bar-legend"><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#1a7a4a"></div>Captações</div><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#fca5a5"></div>Retiradas</div></div></div>
+    <div class="save-bar">
+      <button class="btn-save" id="btn-save-com">Salvar dados</button>
+      <span class="loading-msg" id="com-loading" style="display:none">Salvando...</span>
+      <span class="save-msg" id="com-ok">✓ Salvo com sucesso</span>
+    </div>
+  </div>
+
+  <!-- PLANO DE AÇÃO -->
+  <div class="page" id="page-acoes">
+    <div class="page-header"><div class="page-title">Plano de Ação</div><div class="page-sub">Atividades e metas da equipe</div></div>
+    <div class="toolbar">
+      <button class="btn-add" id="btn-add-acao">+ Nova ação</button>
+      <select class="filter-sel" id="f-status"><option value="">Todos os status</option><option>Pendente</option><option>Em andamento</option><option>Concluído</option></select>
+      <select class="filter-sel" id="f-area"><option value="">Todas as áreas</option><option>Administrativo</option><option>Comercial</option><option>Geral</option></select>
+      <select class="filter-sel" id="f-prio"><option value="">Todas as prioridades</option><option>Alta</option><option>Média</option><option>Baixa</option></select>
+      <span class="summary-text" id="acoes-summary"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:32%">Ação / Atividade</th><th style="width:13%">Área</th><th style="width:13%">Responsável</th><th style="width:10%">Prazo</th><th style="width:10%">Prioridade</th><th style="width:13%">Status</th><th style="width:5%"></th></tr></thead>
+        <tbody id="acoes-body"></tbody>
+      </table>
+    </div>
+    <div class="save-bar" style="margin-top:20px">
+      <button class="btn-save" id="btn-save-acoes">Salvar alterações</button>
+      <span class="loading-msg" id="acoes-loading" style="display:none">Salvando...</span>
+      <span class="save-msg" id="acoes-ok">✓ Salvo com sucesso</span>
+    </div>
+  </div>
+
+  <!-- COMISSÕES -->
+  <div class="page" id="page-comissoes">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Comissões</div><div class="page-sub">Relatório mensal de comissionamento</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="com2-month"></select></div>
+      </div>
+    </div>
+
+    <div class="sec-toolbar" style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+      <button class="btn-add" id="btn-add-contrato">+ Adicionar contrato</button>
+      <button class="btn-save" id="btn-save-comissoes" style="margin-left:auto">Salvar contratos</button>
+      <span class="loading-msg" id="com2-loading" style="display:none">Salvando...</span>
+      <span class="save-msg" id="com2-ok">✓ Salvo</span>
+    </div>
+
+    <div class="table-wrap2" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:700px">
+        <thead>
+          <tr>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;width:120px">Tipo</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:100px">Cód. imóvel</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:100px">Nº contrato</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:110px">Valor aluguel</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:90px">Tx. interm. %</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:90px">Tx. adm. %</th>
+            <th style="text-align:center;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:80px">Pré-atend.</th>
+            <th style="width:36px;border-bottom:1px solid var(--border);background:var(--bg)"></th>
+          </tr>
+        </thead>
+        <tbody id="com2-tbody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:24px">
+      <button class="btn-save" id="btn-gerar-comissoes">Gerar relatório de comissões</button>
+    </div>
+
+    <div id="com2-result" style="display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Resultado das comissões</div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+        <div class="kpi"><div class="kpi-label">Total de contratos</div><div class="kpi-value" id="c2-kpi-qtd">0</div><div class="kpi-hint" id="c2-kpi-tipos"></div></div>
+        <div class="kpi"><div class="kpi-label">Total tx. administração</div><div class="kpi-value" id="c2-kpi-adm">R$ 0</div><div class="kpi-hint">Base de cálculo</div></div>
+        <div class="kpi kpi-saldo"><div class="kpi-label">Total comissões</div><div class="kpi-value" id="c2-kpi-total">R$ 0</div><div class="kpi-hint">Soma de todas as pessoas</div></div>
+      </div>
+
+      <div id="c2-pessoas"></div>
+    </div>
+  </div>
+
+  <!-- CONFIGURAÇÕES -->
+  <div class="page" id="page-config">
+    <div class="page-header"><div class="page-title">Configurações</div><div class="page-sub">Conexão com o banco de dados Supabase</div></div>
+    <div class="config-card">
+      <h3>Credenciais do Supabase</h3>
+      <p>Encontre essas informações em <strong>Project Settings → API Keys → Legacy</strong> no painel do Supabase.</p>
+      <div class="form-group">
+        <label class="form-label">URL do projeto</label>
+        <input class="form-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Anon / Public Key (Legacy)</label>
+        <input class="form-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsIn...">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+        <button class="btn-save" id="btn-salvar-cfg">Salvar e conectar</button>
+        <button class="btn-save" id="btn-testar-cfg" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent)">Testar conexão</button>
+        <span class="conn-status conn-pending" id="conn-status">Não testado</span>
+      </div>
+      <div class="info-box">
+        <strong>Como encontrar suas credenciais:</strong>
+        1. Acesse supabase.com → seu projeto<br>
+        2. Menu lateral: <em>Project Settings → API Keys</em><br>
+        3. Clique na aba <em>"Legacy anon, service_role API keys"</em><br>
+        4. Copie a <em>Project URL</em> da barra do navegador: <code>https://jgdbnkwhmesgjvsymgma.supabase.co</code><br>
+        5. Copie a chave <em>anon public</em> e cole acima
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  // ── ESTADO ──────────────────────────────────────────────────
+  var CFG_KEY = 'loc_cfg_v2';
+  var sbClient = null;
+  var acoes = [];
+  var nextTmpId = 1;
+  var statusCycle = ['Pendente','Em andamento','Concluído'];
+  var pillClass = {'Pendente':'pill-pending','Em andamento':'pill-progress','Concluído':'pill-done'};
+  var prioClass = {'Alta':'pill-high','Média':'pill-mid','Baixa':'pill-low'};
+  var prioMap = {'Alta':'Média','Média':'Baixa','Baixa':'Alta'};
+
+  // ── NAVEGAÇÃO ───────────────────────────────────────────────
+  function goTo(name) {
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+    document.getElementById('page-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+    if (name === 'admin') loadAdmin();
+    if (name === 'comercial') loadComercial();
+    if (name === 'acoes') loadAcoes();
+    if (name === 'comissoes') loadComissoes();
+  }
+
+  document.getElementById('nav-admin').addEventListener('click', function(){ goTo('admin'); });
+  document.getElementById('nav-comercial').addEventListener('click', function(){ goTo('comercial'); });
+  document.getElementById('nav-acoes').addEventListener('click', function(){ goTo('acoes'); });
+  document.getElementById('nav-comissoes').addEventListener('click', function(){ goTo('comissoes'); });
+  document.getElementById('nav-config').addEventListener('click', function(){ goTo('config'); });
+
+  // ── MESES ───────────────────────────────────────────────────
+  function buildMonths() {
+    var now = new Date();
+    var opts = '';
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      var label = d.toLocaleString('pt-BR',{month:'long',year:'numeric'});
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+      var sel = i === 0 ? ' selected' : '';
+      opts += '<option value="' + val + '"' + sel + '>' + label + '</option>';
+    }
+    document.getElementById('admin-month').innerHTML = opts;
+    document.getElementById('com-month').innerHTML = opts;
+    document.getElementById('com2-month').innerHTML = opts;
+  }
+
+  // ── SUPABASE ────────────────────────────────────────────────
+  function loadCfg() {
+    var cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+    if (cfg.url) document.getElementById('cfg-url').value = cfg.url;
+    if (cfg.key) document.getElementById('cfg-key').value = cfg.key;
+    if (cfg.url && cfg.key) initSb(cfg.url, cfg.key);
+  }
+
+  function initSb(url, key) {
+    try {
+      sbClient = window.supabase.createClient(url, key);
+      setConnStatus('ok');
+    } catch(e) {
+      setConnStatus('err');
+      sbClient = null;
+    }
+  }
+
+  document.getElementById('btn-salvar-cfg').addEventListener('click', function(){
+    var url = document.getElementById('cfg-url').value.trim();
+    var key = document.getElementById('cfg-key').value.trim();
+    if (!url || !key) { alert('Preencha a URL e a chave antes de salvar.'); return; }
+    localStorage.setItem(CFG_KEY, JSON.stringify({url:url, key:key}));
+    initSb(url, key);
+  });
+
+  document.getElementById('btn-testar-cfg').addEventListener('click', async function(){
+    if (!sbClient) { setConnStatus('err'); return; }
+    var res = await sbClient.from('admin_indicadores').select('id').limit(1);
+    setConnStatus(res.error ? 'err' : 'ok');
+  });
+
+  function setConnStatus(s) {
+    var el = document.getElementById('conn-status');
+    var dot = document.getElementById('conn-dot');
+    var lbl = document.getElementById('conn-label');
+    if (s === 'ok') {
+      el.className = 'conn-status conn-ok'; el.textContent = '✓ Conectado';
+      dot.style.background = '#1a7a4a'; lbl.textContent = 'Conectado';
+    } else if (s === 'err') {
+      el.className = 'conn-status conn-err'; el.textContent = '✗ Erro de conexão';
+      dot.style.background = '#c0392b'; lbl.textContent = 'Sem conexão';
+    } else {
+      el.className = 'conn-status conn-pending'; el.textContent = 'Não testado';
+      dot.style.background = '#b45309'; lbl.textContent = 'Verificando...';
+    }
+  }
+
+  // ── ADMINISTRATIVO ──────────────────────────────────────────
+  function recalcAdmin() {
+    var n = parseInt(document.getElementById('a-alugados').value) || 0;
+    var r = parseInt(document.getElementById('a-rescisoes').value) || 0;
+    var s = n - r;
+    var el = document.getElementById('a-saldo');
+    var card = document.getElementById('kpi-saldo-admin');
+    el.textContent = (s >= 0 ? '+' : '') + s;
+    card.classList.toggle('neg', s < 0);
+  }
+
+  document.getElementById('a-alugados').addEventListener('input', recalcAdmin);
+  document.getElementById('a-rescisoes').addEventListener('input', recalcAdmin);
+
+  function prevMes(mes) {
+    var parts = mes.split('-');
+    var y = parseInt(parts[0]);
+    var m = parseInt(parts[1]);
+    m -= 1;
+    if (m === 0) { m = 12; y -= 1; }
+    return y + '-' + String(m).padStart(2,'0');
+  }
+
+  async function calcAtivosParaMes(mes) {
+    // Busca o mês anterior e calcula: ativos_anterior + alugados_anterior - rescisoes_anterior
+    var anterior = prevMes(mes);
+    var res = await sbClient.from('admin_indicadores').select('contratos_ativos,contratos_alugados,rescisoes').eq('mes', anterior).single();
+    if (res.data) {
+      var ativos = (res.data.contratos_ativos || 0) + (res.data.contratos_alugados || 0) - (res.data.rescisoes || 0);
+      return { valor: ativos, origem: 'calculado' };
+    }
+    return { valor: null, origem: 'sem_dados' };
+  }
+
+  async function loadAdmin() {
+    var mes = document.getElementById('admin-month').value;
+    if (!sbClient) return;
+    var res = await sbClient.from('admin_indicadores').select('*').eq('mes', mes).single();
+    if (res.data) {
+      // Mês já salvo — mostra os dados
+      document.getElementById('a-alugados').value = res.data.contratos_alugados || '';
+      document.getElementById('a-rescisoes').value = res.data.rescisoes || '';
+      setAtivosDisplay(res.data.contratos_ativos, false);
+      recalcAdmin();
+    } else {
+      // Mês ainda não preenchido — calcula ativos a partir do mês anterior
+      document.getElementById('a-alugados').value = '';
+      document.getElementById('a-rescisoes').value = '';
+      document.getElementById('a-saldo').textContent = '—';
+      var calc = await calcAtivosParaMes(mes);
+      if (calc.valor !== null) {
+        setAtivosDisplay(calc.valor, true);
+      } else {
+        setAtivosDisplay(null, false);
+      }
+    }
+    loadAdminChart();
+  }
+
+  function setAtivosDisplay(valor, calculado) {
+    var el = document.getElementById('a-ativos-display');
+    var hint = document.getElementById('a-ativos-hint');
+    var hidden = document.getElementById('a-ativos');
+    if (valor !== null) {
+      el.textContent = valor;
+      hidden.value = valor;
+      hint.textContent = calculado ? '✦ Calculado do mês anterior' : 'Total acumulado no mês';
+      hint.style.color = calculado ? 'var(--accent)' : 'var(--hint)';
+    } else {
+      el.textContent = '—';
+      hidden.value = '';
+      hint.textContent = 'Sem dados do mês anterior';
+      hint.style.color = 'var(--hint)';
+    }
+  }
+
+  document.getElementById('admin-month').addEventListener('change', loadAdmin);
+
+  document.getElementById('btn-save-admin').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
+    var mes = document.getElementById('admin-month').value;
+    var alugados = parseInt(document.getElementById('a-alugados').value) || 0;
+    var rescisoes = parseInt(document.getElementById('a-rescisoes').value) || 0;
+
+    // Recalcula contratos_ativos com base no mês anterior
+    var calc = await calcAtivosParaMes(mes);
+    var ativos = calc.valor !== null ? calc.valor : (parseInt(document.getElementById('a-ativos').value) || 0);
+
+    showLoading('admin');
+    var payload = {
+      mes: mes,
+      contratos_ativos: ativos,
+      contratos_alugados: alugados,
+      rescisoes: rescisoes
+    };
+    var res = await sbClient.from('admin_indicadores').upsert(payload, {onConflict:'mes'});
+    showResult('admin', !res.error);
+    if (!res.error) {
+      setAtivosDisplay(ativos, false);
+      loadAdminChart();
+    }
+  });
+
+  async function loadAdminChart() {
+    if (!sbClient) return;
+    var res = await sbClient.from('admin_indicadores').select('mes,contratos_alugados,rescisoes').order('mes',{ascending:true}).limit(6);
+    if (!res.data || !res.data.length) return;
+    var maxVal = Math.max.apply(null, res.data.map(function(d){ return Math.max(d.contratos_alugados||0, d.rescisoes||0); }).concat([1]));
+    var container = document.getElementById('admin-chart');
+    container.innerHTML = res.data.map(function(d){
+      var m = new Date(d.mes+'-01').toLocaleString('pt-BR',{month:'short'});
+      var ha = ((d.contratos_alugados||0)/maxVal*80);
+      var hr = ((d.rescisoes||0)/maxVal*80);
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">'
+        +'<div style="display:flex;align-items:flex-end;gap:3px;height:80px">'
+        +'<div class="bar" style="width:18px;height:'+ha+'px;background:#2a5cff;opacity:.8"></div>'
+        +'<div class="bar" style="width:18px;height:'+hr+'px;background:#fca5a5"></div>'
+        +'</div><div class="bar-label">'+m+'</div></div>';
+    }).join('');
+  }
+
+  // ── COMERCIAL ───────────────────────────────────────────────
+  function recalcComercial() {
+    var c = parseInt(document.getElementById('c-captacoes').value) || 0;
+    var r = parseInt(document.getElementById('c-retiradas').value) || 0;
+    var re = parseInt(document.getElementById('c-reagenciados').value) || 0;
+    var s = c + re - r;
+    var el = document.getElementById('c-saldo');
+    var card = document.getElementById('kpi-saldo-com');
+    el.textContent = (s >= 0 ? '+' : '') + s;
+    card.classList.toggle('neg', s < 0);
+  }
+
+  document.getElementById('c-captacoes').addEventListener('input', recalcComercial);
+  document.getElementById('c-retiradas').addEventListener('input', recalcComercial);
+  document.getElementById('c-reagenciados').addEventListener('input', recalcComercial);
+
+  async function calcDisponiveisParaMes(mes) {
+    var anterior = prevMes(mes);
+    var res = await sbClient.from('comercial_indicadores').select('imoveis_disponiveis,novas_captacoes,retiradas,imoveis_reagenciados').eq('mes', anterior).single();
+    if (res.data) {
+      var disp = (res.data.imoveis_disponiveis || 0)
+               + (res.data.novas_captacoes || 0)
+               + (res.data.imoveis_reagenciados || 0)
+               - (res.data.retiradas || 0);
+      return { valor: disp, origem: 'calculado' };
+    }
+    return { valor: null, origem: 'sem_dados' };
+  }
+
+  function setDisponiveisDisplay(valor, calculado) {
+    var el = document.getElementById('c-disponiveis-display');
+    var hint = document.getElementById('c-disponiveis-hint');
+    var hidden = document.getElementById('c-disponiveis');
+    if (valor !== null) {
+      el.textContent = valor;
+      hidden.value = valor;
+      hint.textContent = calculado ? '✦ Calculado do mês anterior' : 'Total da carteira no mês';
+      hint.style.color = calculado ? 'var(--accent)' : 'var(--hint)';
+    } else {
+      el.textContent = '—';
+      hidden.value = '';
+      hint.textContent = 'Sem dados do mês anterior';
+      hint.style.color = 'var(--hint)';
+    }
+  }
+
+  async function loadComercial() {
+    var mes = document.getElementById('com-month').value;
+    if (!sbClient) return;
+    var res = await sbClient.from('comercial_indicadores').select('*').eq('mes', mes).single();
+    if (res.data) {
+      document.getElementById('c-captacoes').value = res.data.novas_captacoes || '';
+      document.getElementById('c-retiradas').value = res.data.retiradas || '';
+      document.getElementById('c-reagenciados').value = res.data.imoveis_reagenciados || '';
+      setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
+      recalcComercial();
+    } else {
+      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
+      document.getElementById('c-saldo').textContent = '—';
+      var calc = await calcDisponiveisParaMes(mes);
+      setDisponiveisDisplay(calc.valor, calc.valor !== null);
+    }
+    loadComercialChart();
+  }
+
+  document.getElementById('com-month').addEventListener('change', loadComercial);
+
+  document.getElementById('btn-save-com').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
+    var mes = document.getElementById('com-month').value;
+    var captacoes = parseInt(document.getElementById('c-captacoes').value) || 0;
+    var retiradas = parseInt(document.getElementById('c-retiradas').value) || 0;
+    var reagenciados = parseInt(document.getElementById('c-reagenciados').value) || 0;
+
+    var calc = await calcDisponiveisParaMes(mes);
+    var disponiveis = calc.valor !== null ? calc.valor : (parseInt(document.getElementById('c-disponiveis').value) || 0);
+
+    showLoading('com');
+    var payload = {
+      mes: mes,
+      imoveis_disponiveis: disponiveis,
+      novas_captacoes: captacoes,
+      retiradas: retiradas,
+      imoveis_reagenciados: reagenciados
+    };
+    var res = await sbClient.from('comercial_indicadores').upsert(payload, {onConflict:'mes'});
+    showResult('com', !res.error);
+    if (!res.error) {
+      setDisponiveisDisplay(disponiveis, false);
+      loadComercialChart();
+    }
+  });
+
+  async function loadComercialChart() {
+    if (!sbClient) return;
+    var res = await sbClient.from('comercial_indicadores').select('mes,novas_captacoes,retiradas,imoveis_reagenciados').order('mes',{ascending:true}).limit(6);
+    if (!res.data || !res.data.length) return;
+    var maxVal = Math.max.apply(null, res.data.map(function(d){ return Math.max((d.novas_captacoes||0)+(d.imoveis_reagenciados||0), d.retiradas||0); }).concat([1]));
+    var container = document.getElementById('com-chart');
+    container.innerHTML = res.data.map(function(d){
+      var m = new Date(d.mes+'-01').toLocaleString('pt-BR',{month:'short'});
+      var hc = (((d.novas_captacoes||0)+(d.imoveis_reagenciados||0))/maxVal*80);
+      var hr = ((d.retiradas||0)/maxVal*80);
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">'
+        +'<div style="display:flex;align-items:flex-end;gap:3px;height:80px">'
+        +'<div class="bar" style="width:18px;height:'+hc+'px;background:#1a7a4a;opacity:.8"></div>'
+        +'<div class="bar" style="width:18px;height:'+hr+'px;background:#fca5a5"></div>'
+        +'</div><div class="bar-label">'+m+'</div></div>';
+    }).join('');
+  }
+
+  // ── PLANO DE AÇÃO ───────────────────────────────────────────
+  async function loadAcoes() {
+    if (!sbClient) return;
+    var res = await sbClient.from('plano_acoes').select('*').order('criado_em',{ascending:true});
+    acoes = res.data || [];
+    renderAcoes();
+  }
+
+  document.getElementById('btn-add-acao').addEventListener('click', function(){
+    acoes.push({_new:true, id:'tmp_'+(nextTmpId++), acao:'', area:'Geral', responsavel:'', prazo:'', prioridade:'Média', status:'Pendente', observacoes:''});
+    renderAcoes();
+  });
+
+  document.getElementById('f-status').addEventListener('change', renderAcoes);
+  document.getElementById('f-area').addEventListener('change', renderAcoes);
+  document.getElementById('f-prio').addEventListener('change', renderAcoes);
+
+  function renderAcoes() {
+    var fs = document.getElementById('f-status').value;
+    var fa = document.getElementById('f-area').value;
+    var fp = document.getElementById('f-prio').value;
+    var filtered = acoes.filter(function(a){
+      return (!fs || a.status===fs) && (!fa || a.area===fa) && (!fp || a.prioridade===fp);
+    });
+    var body = document.getElementById('acoes-body');
+    if (!filtered.length) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma ação encontrada. Clique em "+ Nova ação" para começar.</td></tr>';
+    } else {
+      body.innerHTML = filtered.map(function(a){
+        var pid = String(a.id);
+        return '<tr id="row-'+pid+'">'
+          +'<td><input class="td-input" data-id="'+pid+'" data-field="acao" value="'+escHtml(a.acao||'')+'" placeholder="Descreva a ação..."></td>'
+          +'<td><select class="td-sel" data-id="'+pid+'" data-field="area">'
+          +['Administrativo','Comercial','Geral'].map(function(x){ return '<option'+(a.area===x?' selected':'')+'>'+x+'</option>'; }).join('')
+          +'</select></td>'
+          +'<td><input class="td-input" data-id="'+pid+'" data-field="responsavel" value="'+escHtml(a.responsavel||'')+'" placeholder="Nome..."></td>'
+          +'<td><input type="date" class="td-input" data-id="'+pid+'" data-field="prazo" style="font-size:12px" value="'+(a.prazo?a.prazo.substring(0,10):'')+'"></td>'
+          +'<td><button class="pill '+(prioClass[a.prioridade]||'pill-mid')+'" data-id="'+pid+'" data-action="prio">'+(a.prioridade||'Média')+'</button></td>'
+          +'<td><button class="pill '+(pillClass[a.status]||'pill-pending')+'" data-id="'+pid+'" data-action="status">'+a.status+'</button></td>'
+          +'<td><button class="del-btn" data-id="'+pid+'" data-action="del">×</button></td>'
+          +'</tr>';
+      }).join('');
+    }
+    var done = acoes.filter(function(a){ return a.status==='Concluído'; }).length;
+    document.getElementById('acoes-summary').textContent = done + ' de ' + acoes.length + ' concluídas';
+  }
+
+  function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  document.getElementById('acoes-body').addEventListener('input', function(e){
+    var el = e.target;
+    var id = el.dataset.id;
+    var field = el.dataset.field;
+    if (!id || !field) return;
+    var a = acoes.find(function(x){ return String(x.id)===id; });
+    if (a) a[field] = el.value;
+  });
+
+  document.getElementById('acoes-body').addEventListener('change', function(e){
+    var el = e.target;
+    var id = el.dataset.id;
+    var field = el.dataset.field;
+    if (!id || !field) return;
+    var a = acoes.find(function(x){ return String(x.id)===id; });
+    if (a) a[field] = el.value;
+  });
+
+  document.getElementById('acoes-body').addEventListener('click', function(e){
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var id = el.dataset.id;
+    var action = el.dataset.action;
+    var a = acoes.find(function(x){ return String(x.id)===id; });
+    if (!a) return;
+    if (action === 'status') {
+      a.status = statusCycle[(statusCycle.indexOf(a.status)+1) % statusCycle.length];
+      renderAcoes();
+    } else if (action === 'prio') {
+      a.prioridade = prioMap[a.prioridade] || 'Média';
+      renderAcoes();
+    } else if (action === 'del') {
+      if (!confirm('Remover esta ação?')) return;
+      if (!a._new && sbClient) sbClient.from('plano_acoes').delete().eq('id', id);
+      acoes = acoes.filter(function(x){ return String(x.id)!==id; });
+      renderAcoes();
+    }
+  });
+
+  document.getElementById('btn-save-acoes').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
+    showLoading('acoes');
+    var hasError = false;
+    for (var i = 0; i < acoes.length; i++) {
+      var a = acoes[i];
+      var payload = { acao:a.acao, area:a.area, responsavel:a.responsavel, prazo:a.prazo||null, status:a.status, prioridade:a.prioridade, observacoes:a.observacoes||'' };
+      if (a._new) {
+        var ins = await sbClient.from('plano_acoes').insert(payload).select().single();
+        if (!ins.error && ins.data) { a.id = ins.data.id; delete a._new; }
+        else hasError = true;
+      } else {
+        var upd = await sbClient.from('plano_acoes').update(payload).eq('id', a.id);
+        if (upd.error) hasError = true;
+      }
+    }
+    showResult('acoes', !hasError);
+  });
+
+  // ── COMISSÕES ────────────────────────────────────────────────
+  var com2Rows = [];
+  var com2Id = 0;
+
+  function com2AddRow(data) {
+    var id = com2Id++;
+    com2Rows.push({
+      id: id,
+      dbId: data ? data.id : null,
+      tipo: data ? data.tipo : 'novo',
+      cod: data ? (data.cod_imovel||'') : '',
+      contrato: data ? (data.num_contrato||'') : '',
+      aluguel: data ? (data.valor_aluguel||'') : '',
+      inter: data ? (data.tx_intermediacao||'') : '',
+      adm: data ? (data.tx_administracao||'') : '',
+      pre: data ? (data.pre_atendimento||false) : false
+    });
+    com2Render();
+  }
+
+  function com2Render() {
+    var tbody = document.getElementById('com2-tbody');
+    if (!com2Rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--hint);font-size:13px">Nenhum contrato. Clique em "+ Adicionar contrato".</td></tr>';
+      return;
+    }
+    tbody.innerHTML = com2Rows.map(function(r){
+      return '<tr>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="tipo" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:110px">'
+        +'<option value="novo"'+(r.tipo==='novo'?' selected':'')+'>Novo</option>'
+        +'<option value="reag"'+(r.tipo==='reag'?' selected':'')+'>Reagenciamento</option>'
+        +'</select></td>'
+        +'<td style="padding:8px 14px"><input data-id="'+r.id+'" data-field="cod" value="'+r.cod+'" placeholder="IM-001" style="width:90px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input data-id="'+r.id+'" data-field="contrato" value="'+r.contrato+'" placeholder="CT-001" style="width:90px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input type="number" data-id="'+r.id+'" data-field="aluguel" value="'+r.aluguel+'" placeholder="2000" min="0" style="width:90px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input type="number" data-id="'+r.id+'" data-field="inter" value="'+r.inter+'" placeholder="8" min="0" max="100" step="0.1" style="width:70px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input type="number" data-id="'+r.id+'" data-field="adm" value="'+r.adm+'" placeholder="10" min="0" max="100" step="0.1" style="width:70px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px;text-align:center"><input type="checkbox" data-id="'+r.id+'" data-field="pre" '+(r.pre?'checked':'')+' style="width:14px;height:14px;cursor:pointer" title="Pré-atendimento participou?"></td>'
+        +'<td style="padding:8px 14px"><button data-id="'+r.id+'" data-action="del" style="background:none;border:none;color:var(--hint);font-size:18px;cursor:pointer;line-height:1;padding:0 4px">×</button></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  document.getElementById('com2-tbody').addEventListener('input', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id) || !field) return;
+    var r = com2Rows.find(function(x){ return x.id===id; });
+    if (r) r[field] = el.value;
+  });
+  document.getElementById('com2-tbody').addEventListener('change', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id) || !field) return;
+    var r = com2Rows.find(function(x){ return x.id===id; });
+    if (r) r[field] = field==='pre' ? el.checked : el.value;
+  });
+  document.getElementById('com2-tbody').addEventListener('click', function(e){
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var id = parseInt(el.dataset.id);
+    var r = com2Rows.find(function(x){ return x.id===id; });
+    if (r && r.dbId && sbClient) sbClient.from('comissoes_contratos').delete().eq('id', r.dbId);
+    com2Rows = com2Rows.filter(function(x){ return x.id!==id; });
+    com2Render();
+  });
+
+  document.getElementById('btn-add-contrato').addEventListener('click', function(){ com2AddRow(null); });
+  document.getElementById('com2-month').addEventListener('change', loadComissoes);
+
+  async function loadComissoes() {
+    var mes = document.getElementById('com2-month').value;
+    com2Rows = []; com2Id = 0;
+    document.getElementById('com2-result').style.display = 'none';
+    if (!sbClient) return;
+    var res = await sbClient.from('comissoes_contratos').select('*').eq('mes', mes).order('criado_em', {ascending:true});
+    if (res.data && res.data.length) {
+      res.data.forEach(function(d){ com2AddRow(d); });
+    } else {
+      com2Render();
+    }
+  }
+
+  document.getElementById('btn-save-comissoes').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro.'); return; }
+    var mes = document.getElementById('com2-month').value;
+    showLoading('com2');
+    var hasError = false;
+    for (var i = 0; i < com2Rows.length; i++) {
+      var r = com2Rows[i];
+      var payload = {
+        mes: mes, tipo: r.tipo, cod_imovel: r.cod, num_contrato: r.contrato,
+        valor_aluguel: parseFloat(r.aluguel)||0, tx_intermediacao: parseFloat(r.inter)||0,
+        tx_administracao: parseFloat(r.adm)||0, pre_atendimento: r.pre||false
+      };
+      if (r.dbId) {
+        var upd = await sbClient.from('comissoes_contratos').update(payload).eq('id', r.dbId);
+        if (upd.error) hasError = true;
+      } else {
+        var ins = await sbClient.from('comissoes_contratos').insert(payload).select().single();
+        if (!ins.error && ins.data) r.dbId = ins.data.id;
+        else hasError = true;
+      }
+    }
+    showResult('com2', !hasError);
+  });
+
+  function fmtBRL(v) { return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function faixaOcupacao(qtd) {
+    if (qtd >= 26) return { pct: 60, label: '26+ imóveis' };
+    if (qtd >= 21) return { pct: 45, label: '21–25 imóveis' };
+    if (qtd >= 16) return { pct: 35, label: '16–20 imóveis' };
+    if (qtd >= 10) return { pct: 25, label: '10–15 imóveis' };
+    return { pct: 10, label: '1–9 imóveis' };
+  }
+
+  document.getElementById('btn-gerar-comissoes').addEventListener('click', function(){
+    var validos = com2Rows.filter(function(r){ return parseFloat(r.aluguel) && parseFloat(r.adm); });
+    if (!validos.length) { alert('Preencha ao menos um contrato com valor de aluguel e taxa de administração.'); return; }
+
+    var totalAdm = 0, agenciamento = 0, preTotal = 0;
+    var novos = 0, reags = 0;
+    var detAgenc = [];
+
+    validos.forEach(function(r){
+      var aluguel = parseFloat(r.aluguel)||0;
+      var pctAdm = parseFloat(r.adm)||0;
+      var vlrAdm = aluguel * pctAdm / 100;
+      totalAdm += vlrAdm;
+      var pctAgenc = r.tipo === 'novo' ? 0.50 : 0.25;
+      var vlrAgenc = vlrAdm * pctAgenc;
+      agenciamento += vlrAgenc;
+      if (r.tipo === 'novo') novos++; else reags++;
+      detAgenc.push({ cod: r.cod||(r.contrato||('Item '+(detAgenc.length+1))), tipo: r.tipo, vlrAdm: vlrAdm, pct: pctAgenc*100, vlr: vlrAgenc });
+      if (r.pre) preTotal += 50;
+    });
+
+    var qtd = validos.length;
+    var faixa = faixaOcupacao(qtd);
+    var ocupacao = totalAdm * faixa.pct / 100;
+    var totalGeral = agenciamento + ocupacao + preTotal;
+    var preQtd = validos.filter(function(r){ return r.pre; }).length;
+
+    document.getElementById('c2-kpi-qtd').textContent = qtd;
+    document.getElementById('c2-kpi-tipos').textContent = novos+' nov. · '+reags+' reag.';
+    document.getElementById('c2-kpi-adm').textContent = fmtBRL(totalAdm);
+    document.getElementById('c2-kpi-total').textContent = fmtBRL(totalGeral);
+
+    var ph = function(cor){ return 'background:'+cor+';border-radius:var(--radius);overflow:hidden;margin-bottom:12px;border:1px solid var(--border)'; };
+    var html = '';
+
+    html += '<div style="'+ph('var(--surface)')+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg)">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">Agenciamento</div><div style="font-size:11px;color:var(--muted)">50% tx. adm. (novo) · 25% tx. adm. (reagenciamento)</div></div>'
+      +'<div style="font-size:16px;font-weight:600;font-family:monospace;color:var(--text)">'+fmtBRL(agenciamento)+'</div>'
+      +'</div><div style="padding:10px 16px">';
+    detAgenc.forEach(function(d){
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+        +'<span style="color:var(--muted)">'+d.cod+' <span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500;background:'+(d.tipo==='novo'?'#E6F1FB':'#FAEEDA')+';color:'+(d.tipo==='novo'?'#0C447C':'#633806')+'">'+(d.tipo==='novo'?'Novo':'Reag.')+'</span></span>'
+        +'<span style="font-family:monospace;font-weight:500">'+fmtBRL(d.vlr)+' <span style="font-size:10px;color:var(--muted);font-family:inherit">('+d.pct.toFixed(0)+'% de '+fmtBRL(d.vlrAdm)+')</span></span>'
+        +'</div>';
+    });
+    html += '</div></div>';
+
+    html += '<div style="'+ph('var(--surface)')+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg)">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">Ocupação</div><div style="font-size:11px;color:var(--muted)">Comissão por faixa de imóveis locados no mês</div></div>'
+      +'<div style="font-size:16px;font-weight:600;font-family:monospace;color:var(--text)">'+fmtBRL(ocupacao)+'</div>'
+      +'</div><div style="padding:10px 16px">'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">Contratos no mês</span><span style="font-weight:500">'+qtd+' imóveis <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#EAF3DE;color:#27500A;margin-left:4px">'+faixa.label+'</span></span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">Percentual da faixa</span><span style="font-weight:500">'+faixa.pct+'% da tx. adm. total</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px"><span style="color:var(--muted)">Base (total tx. adm.)</span><span style="font-family:monospace;font-weight:500">'+fmtBRL(totalAdm)+'</span></div>'
+      +'</div></div>';
+
+    html += '<div style="'+ph('var(--surface)')+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg)">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">Pré-atendimento</div><div style="font-size:11px;color:var(--muted)">R$ 50,00 por contrato com participação</div></div>'
+      +'<div style="font-size:16px;font-weight:600;font-family:monospace;color:var(--text)">'+fmtBRL(preTotal)+'</div>'
+      +'</div><div style="padding:10px 16px">'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px"><span style="color:var(--muted)">Contratos com pré-atendimento</span><span style="font-weight:500">'+preQtd+' × R$ 50,00</span></div>'
+      +'</div></div>';
+
+    document.getElementById('c2-pessoas').innerHTML = html;
+    document.getElementById('com2-result').style.display = 'block';
+  });
+
+  // ── UI HELPERS ──────────────────────────────────────────────
+  function showLoading(p) {
+    var l = document.getElementById(p+'-loading');
+    var ok = document.getElementById(p+'-ok');
+    if (l) l.style.display = 'inline';
+    if (ok) { ok.style.opacity = 0; ok.classList.remove('err'); }
+  }
+  function showResult(p, success) {
+    var l = document.getElementById(p+'-loading');
+    var ok = document.getElementById(p+'-ok');
+    if (l) l.style.display = 'none';
+    if (ok) {
+      ok.textContent = success ? '✓ Salvo com sucesso' : '✗ Erro ao salvar — verifique a conexão';
+      ok.classList.toggle('err', !success);
+      ok.style.opacity = 1;
+      setTimeout(function(){ ok.style.opacity = 0; }, 3000);
+    }
+  }
+
+  // ── INIT ────────────────────────────────────────────────────
+  buildMonths();
+  loadCfg();
+  setTimeout(function(){ loadAdmin(); loadAcoes(); }, 600);
+
+})();
+</script>
+</body>
+</html>
