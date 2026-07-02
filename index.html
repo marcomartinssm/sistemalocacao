@@ -224,7 +224,7 @@ tbody tr:hover{background:#fafaf8}
     </div>
 
     <div class="table-wrap2" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:700px">
+      <table style="width:100%;border-collapse:collapse;min-width:950px">
         <thead>
           <tr>
             <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;width:120px">Tipo</th>
@@ -234,6 +234,8 @@ tbody tr:hover{background:#fafaf8}
             <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:90px">Tx. interm. %</th>
             <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:90px">Tx. adm. %</th>
             <th style="text-align:center;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:80px">Pré-atend.</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:130px">Mídia origem</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:120px">Fiança</th>
             <th style="width:36px;border-bottom:1px solid var(--border);background:var(--bg)"></th>
           </tr>
         </thead>
@@ -301,6 +303,15 @@ tbody tr:hover{background:#fafaf8}
   var pillClass = {'Pendente':'pill-pending','Em andamento':'pill-progress','Concluído':'pill-done'};
   var prioClass = {'Alta':'pill-high','Média':'pill-mid','Baixa':'pill-low'};
   var prioMap = {'Alta':'Média','Média':'Baixa','Baixa':'Alta'};
+
+  var MIDIA_OPTS = ['Grupo Zap','Site','Meta Ads','Instagram','Indicação','Placa','Whatsapp'];
+  var FIANCA_OPTS = ['Porto Seguro','Tokio Marine','Outros','Sem garantia','Caução','Fiador','Loft'];
+
+  function selOpts(opts, current) {
+    return '<option value="">Selecione</option>' + opts.map(function(o){
+      return '<option value="'+o+'"'+(current===o?' selected':'')+'>'+o+'</option>';
+    }).join('');
+  }
 
   // ── NAVEGAÇÃO ───────────────────────────────────────────────
   function goTo(name) {
@@ -739,7 +750,9 @@ tbody tr:hover{background:#fafaf8}
       aluguel: data ? (data.valor_aluguel||'') : '',
       inter: data ? (data.tx_intermediacao||'') : '',
       adm: data ? (data.tx_administracao||'') : '',
-      pre: data ? (data.pre_atendimento||false) : false
+      pre: data ? (data.pre_atendimento||false) : false,
+      midia: data ? (data.midia_origem||'') : '',
+      fianca: data ? (data.fianca||'') : ''
     });
     com2Render();
   }
@@ -747,7 +760,7 @@ tbody tr:hover{background:#fafaf8}
   function com2Render() {
     var tbody = document.getElementById('com2-tbody');
     if (!com2Rows.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--hint);font-size:13px">Nenhum contrato. Clique em "+ Adicionar contrato".</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--hint);font-size:13px">Nenhum contrato. Clique em "+ Adicionar contrato".</td></tr>';
       return;
     }
     tbody.innerHTML = com2Rows.map(function(r){
@@ -762,6 +775,8 @@ tbody tr:hover{background:#fafaf8}
         +'<td style="padding:8px 14px"><input type="number" data-id="'+r.id+'" data-field="inter" value="'+r.inter+'" placeholder="8" min="0" max="100" step="0.1" style="width:70px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
         +'<td style="padding:8px 14px"><input type="number" data-id="'+r.id+'" data-field="adm" value="'+r.adm+'" placeholder="10" min="0" max="100" step="0.1" style="width:70px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
         +'<td style="padding:8px 14px;text-align:center"><input type="checkbox" data-id="'+r.id+'" data-field="pre" '+(r.pre?'checked':'')+' style="width:14px;height:14px;cursor:pointer" title="Pré-atendimento participou?"></td>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="midia" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:120px">'+selOpts(MIDIA_OPTS, r.midia)+'</select></td>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="fianca" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:110px">'+selOpts(FIANCA_OPTS, r.fianca)+'</select></td>'
         +'<td style="padding:8px 14px"><button data-id="'+r.id+'" data-action="del" style="background:none;border:none;color:var(--hint);font-size:18px;cursor:pointer;line-height:1;padding:0 4px">×</button></td>'
         +'</tr>';
     }).join('');
@@ -820,7 +835,8 @@ tbody tr:hover{background:#fafaf8}
       var payload = {
         mes: mes, tipo: r.tipo, cod_imovel: r.cod, num_contrato: r.contrato,
         valor_aluguel: parseFloat(r.aluguel)||0, tx_intermediacao: parseFloat(r.inter)||0,
-        tx_administracao: parseFloat(r.adm)||0, pre_atendimento: r.pre||false
+        tx_administracao: parseFloat(r.adm)||0, pre_atendimento: r.pre||false,
+        midia_origem: r.midia||null, fianca: r.fianca||null
       };
       if (r.dbId) {
         var upd = await sbClient.from('comissoes_contratos').update(payload).eq('id', r.dbId);
