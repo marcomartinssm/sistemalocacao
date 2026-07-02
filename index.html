@@ -6,6 +6,7 @@
 <title>Gestão de Locação</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#f7f6f2;--surface:#ffffff;--border:#e4e2dc;--text:#1a1916;--muted:#6b6a65;--hint:#a09e98;--accent:#2a5cff;--accent-bg:#eef1ff;--green:#1a7a4a;--green-bg:#e6f5ed;--red:#c0392b;--red-bg:#fdecea;--amber:#b45309;--amber-bg:#fef3e2;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05)}
@@ -177,6 +178,22 @@ tbody tr:hover{background:#fafaf8}
       <div class="kpi kpi-saldo" id="kpi-saldo-com"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="c-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
     </div>
     <div class="chart-card"><h3>Histórico dos últimos 6 meses</h3><div class="bar-chart" id="com-chart"></div><div class="bar-legend"><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#1a7a4a"></div>Captações</div><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#fca5a5"></div>Retiradas</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>Mídia de origem</h3>
+        <div id="com-legend-midia" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
+        <div style="position:relative;width:100%;height:200px">
+          <canvas id="com-donut-midia" role="img" aria-label="Gráfico de rosca com origem dos leads por mídia">Dados de mídia de origem dos contratos do mês.</canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>Tipo de fiança</h3>
+        <div id="com-legend-fianca" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
+        <div style="position:relative;width:100%;height:200px">
+          <canvas id="com-donut-fianca" role="img" aria-label="Gráfico de rosca com tipos de fiança dos contratos do mês">Dados de tipo de fiança dos contratos do mês.</canvas>
+        </div>
+      </div>
+    </div>
     <div class="save-bar">
       <button class="btn-save" id="btn-save-com">Salvar dados</button>
       <span class="loading-msg" id="com-loading" style="display:none">Salvando...</span>
@@ -305,6 +322,47 @@ tbody tr:hover{background:#fafaf8}
   var prioMap = {'Alta':'Média','Média':'Baixa','Baixa':'Alta'};
 
   var MIDIA_OPTS = ['Grupo Zap','Site','Meta Ads','Instagram','Indicação','Placa','Whatsapp'];
+  var DONUT_COLORS = ['#2a78d6','#1baf7a','#eda100','#4a3aa7','#e34948','#e87ba4','#eb6834','#008300'];
+  var donutCharts = {};
+
+  function renderDonut(canvasId, legendId, data) {
+    if (donutCharts[canvasId]) { donutCharts[canvasId].destroy(); }
+    var canvas = document.getElementById(canvasId);
+    var legend = document.getElementById(legendId);
+    var total = data.reduce(function(s,d){ return s+d.count; }, 0);
+    if (!total) {
+      legend.innerHTML = '';
+      canvas.parentElement.innerHTML = '<div style="text-align:center;padding:60px 0;font-size:12px;color:var(--hint)">Sem dados para o mês selecionado</div>';
+      return;
+    }
+    legend.innerHTML = data.map(function(d, i){
+      return '<span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:'+DONUT_COLORS[i % DONUT_COLORS.length]+';flex-shrink:0"></span>'+d.label+' — '+d.count+' ('+Math.round(d.count/total*100)+'%)</span>';
+    }).join('');
+    donutCharts[canvasId] = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(function(d){ return d.label; }),
+        datasets: [{
+          data: data.map(function(d){ return d.count; }),
+          backgroundColor: data.map(function(d,i){ return DONUT_COLORS[i % DONUT_COLORS.length]; }),
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c){
+            return ' '+c.label+': '+c.raw+' ('+Math.round(c.raw/total*100)+'%)';
+          }}}
+        }
+      }
+    });
+  }
   var FIANCA_OPTS = ['Porto Seguro','Tokio Marine','Outros','Sem garantia','Caução','Fiador','Loft'];
 
   function selOpts(opts, current) {
@@ -580,6 +638,25 @@ tbody tr:hover{background:#fafaf8}
       setDisponiveisDisplay(calc.valor, calc.valor !== null);
     }
     loadComercialChart();
+    loadComercialOrigemFianca();
+  }
+
+  async function loadComercialOrigemFianca() {
+    if (!sbClient) return;
+    var mes = document.getElementById('com-month').value;
+    var res = await sbClient.from('comissoes_contratos').select('midia_origem,fianca').eq('mes', mes);
+    var linhas = res.data || [];
+    var midiaCount = {}, fiancaCount = {};
+    linhas.forEach(function(l){
+      var m = l.midia_origem || 'Não informado';
+      var f = l.fianca || 'Não informado';
+      midiaCount[m] = (midiaCount[m]||0) + 1;
+      fiancaCount[f] = (fiancaCount[f]||0) + 1;
+    });
+    var midiaData = Object.keys(midiaCount).map(function(k){ return {label:k, count:midiaCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
+    var fiancaData = Object.keys(fiancaCount).map(function(k){ return {label:k, count:fiancaCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
+    renderDonut('com-donut-midia', 'com-legend-midia', midiaData);
+    renderDonut('com-donut-fianca', 'com-legend-fianca', fiancaData);
   }
 
   document.getElementById('com-month').addEventListener('change', loadComercial);
