@@ -182,14 +182,14 @@ tbody tr:hover{background:#fafaf8}
       <div class="chart-card" style="margin-bottom:0">
         <h3>Mídia de origem</h3>
         <div id="com-legend-midia" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
-        <div style="position:relative;width:100%;height:200px">
+        <div id="com-donut-midia-wrap" style="position:relative;width:100%;height:200px">
           <canvas id="com-donut-midia" role="img" aria-label="Gráfico de rosca com origem dos leads por mídia">Dados de mídia de origem dos contratos do mês.</canvas>
         </div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
         <h3>Tipo de fiança</h3>
         <div id="com-legend-fianca" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
-        <div style="position:relative;width:100%;height:200px">
+        <div id="com-donut-fianca-wrap" style="position:relative;width:100%;height:200px">
           <canvas id="com-donut-fianca" role="img" aria-label="Gráfico de rosca com tipos de fiança dos contratos do mês">Dados de tipo de fiança dos contratos do mês.</canvas>
         </div>
       </div>
@@ -326,18 +326,23 @@ tbody tr:hover{background:#fafaf8}
   var donutCharts = {};
 
   function renderDonut(canvasId, legendId, data) {
-    if (donutCharts[canvasId]) { donutCharts[canvasId].destroy(); }
-    var canvas = document.getElementById(canvasId);
     var legend = document.getElementById(legendId);
+    var wrapper = document.getElementById(canvasId + '-wrap');
     var total = data.reduce(function(s,d){ return s+d.count; }, 0);
     if (!total) {
       legend.innerHTML = '';
-      canvas.parentElement.innerHTML = '<div style="text-align:center;padding:60px 0;font-size:12px;color:var(--hint)">Sem dados para o mês selecionado</div>';
+      if (wrapper) wrapper.innerHTML = '<div style="text-align:center;padding:60px 0;font-size:12px;color:var(--hint)">Sem dados para o mês selecionado</div>';
       return;
     }
     legend.innerHTML = data.map(function(d, i){
       return '<span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:'+DONUT_COLORS[i % DONUT_COLORS.length]+';flex-shrink:0"></span>'+d.label+' — '+d.count+' ('+Math.round(d.count/total*100)+'%)</span>';
     }).join('');
+    if (donutCharts[canvasId]) {
+      donutCharts[canvasId].destroy();
+      delete donutCharts[canvasId];
+    }
+    if (wrapper) wrapper.innerHTML = '<canvas id="'+canvasId+'" role="img" aria-label="Gráfico rosca">Dados do gráfico.</canvas>';
+    var canvas = document.getElementById(canvasId);
     donutCharts[canvasId] = new Chart(canvas, {
       type: 'doughnut',
       data: {
