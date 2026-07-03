@@ -398,14 +398,20 @@ tbody tr:hover{background:#fafaf8}
   function buildMonths() {
     var now = new Date();
     var opts = '';
-    for (var i = 5; i >= 0; i--) {
-      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-      var label = d.toLocaleString('pt-BR',{month:'long',year:'numeric'});
+    // Gera meses desde dezembro/2025 até o mês atual
+    var start = new Date(2025, 11, 1); // dezembro 2025
+    var end = new Date(now.getFullYear(), now.getMonth(), 1);
+    var current = new Date(start);
+    var months = [];
+    while (current <= end) {
+      var val = current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0');
+      var label = current.toLocaleString('pt-BR',{month:'long',year:'numeric'});
       label = label.charAt(0).toUpperCase() + label.slice(1);
-      var sel = i === 0 ? ' selected' : '';
-      opts += '<option value="' + val + '"' + sel + '>' + label + '</option>';
+      var sel = (current.getFullYear() === end.getFullYear() && current.getMonth() === end.getMonth()) ? ' selected' : '';
+      months.push('<option value="' + val + '"' + sel + '>' + label + '</option>');
+      current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
     }
+    opts = months.join('');
     document.getElementById('admin-month').innerHTML = opts;
     document.getElementById('com-month').innerHTML = opts;
     document.getElementById('com2-month').innerHTML = opts;
