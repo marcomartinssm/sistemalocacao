@@ -125,10 +125,23 @@ tbody tr:hover{background:#fafaf8}
         Gestão de contratos
       </button>
     </div>
-    <button class="nav-item" id="nav-comercial">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L10.5 6H15L11.5 9.5L13 14L8 11L3 14L4.5 9.5L1 6H5.5L8 1z" fill="currentColor" opacity=".8"/></svg>
-      Comercial
+    <button class="nav-item" id="nav-comercial-toggle" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L10.5 6H15L11.5 9.5L13 14L8 11L3 14L4.5 9.5L1 6H5.5L8 1z" fill="currentColor" opacity=".8"/></svg>
+        Comercial
+      </span>
+      <svg id="comercial-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform .2s;flex-shrink:0"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+    <div id="comercial-submenu" style="display:flex;flex-direction:column;gap:1px;overflow:hidden;max-height:0;transition:max-height .2s ease">
+      <button class="nav-item" id="nav-comercial" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="currentColor"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="currentColor"/><rect x="10" y="1" width="3" height="12" rx="1" fill="currentColor"/></svg>
+        Indicadores
+      </button>
+      <button class="nav-item" id="nav-gestao-comercial" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        Gestão comercial
+      </button>
+    </div>
     <div class="nav-section">Gestão</div>
     <button class="nav-item" id="nav-acoes">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="8" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="10" height="1.5" rx=".75" fill="currentColor"/></svg>
@@ -191,7 +204,7 @@ tbody tr:hover{background:#fafaf8}
     </div>
   </div>
 
-  <!-- COMERCIAL -->
+  <!-- COMERCIAL: INDICADORES (leitura + gráficos) -->
   <div class="page" id="page-comercial">
     <div class="page-header">
       <div class="header-row">
@@ -201,9 +214,9 @@ tbody tr:hover{background:#fafaf8}
     </div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">Imóveis disponíveis</div><div class="kpi-value" id="c-disponiveis-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><input type="hidden" id="c-disponiveis"><div class="kpi-hint" id="c-disponiveis-hint">Calculado automaticamente</div></div>
-      <div class="kpi"><div class="kpi-label">Novas captações</div><input class="kpi-input" id="c-captacoes" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis captados no mês</div></div>
-      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><input class="kpi-input" id="c-retiradas" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retirados da carteira</div></div>
-      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><input class="kpi-input" id="c-reagenciados" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retomados para carteira</div></div>
+      <div class="kpi"><div class="kpi-label">Novas captações</div><div class="kpi-value" id="c-captacoes-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis captados no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><div class="kpi-value" id="c-retiradas-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis retirados da carteira</div></div>
+      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><div class="kpi-value" id="c-reagenciados-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis retomados para carteira</div></div>
       <div class="kpi kpi-saldo" id="kpi-saldo-com"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="c-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
     </div>
     <div class="chart-card"><h3>Histórico dos últimos 6 meses</h3><div class="bar-chart" id="com-chart"></div><div class="bar-legend"><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#1a7a4a"></div>Captações</div><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#fca5a5"></div>Retiradas</div></div></div>
@@ -222,6 +235,23 @@ tbody tr:hover{background:#fafaf8}
           <canvas id="com-donut-fianca" role="img" aria-label="Gráfico de rosca com tipos de fiança dos contratos do mês">Dados de tipo de fiança dos contratos do mês.</canvas>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- COMERCIAL: GESTÃO COMERCIAL (edição + salvar) -->
+  <div class="page" id="page-gestao-comercial">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Gestão comercial</div><div class="page-sub">Lançamento de captações e retiradas</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="gcom-month"></select></div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Imóveis disponíveis</div><div class="kpi-value" id="gc-disponiveis" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint" id="gc-disponiveis-hint">Calculado automaticamente</div></div>
+      <div class="kpi"><div class="kpi-label">Novas captações</div><input class="kpi-input" id="c-captacoes" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis captados no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><input class="kpi-input" id="c-retiradas" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retirados da carteira</div></div>
+      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><input class="kpi-input" id="c-reagenciados" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retomados para carteira</div></div>
+      <div class="kpi kpi-saldo" id="kpi-saldo-gcom"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="gc-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
     </div>
     <div class="save-bar">
       <button class="btn-save" id="btn-save-com">Salvar dados</button>
@@ -415,6 +445,7 @@ tbody tr:hover{background:#fafaf8}
     if (name === 'gestao-contratos') loadGestaoContratos();
     if (name === 'admin') { loadAdmin(); }
     if (name === 'comercial') loadComercial();
+    if (name === 'gestao-comercial') loadGestaoComercial();
     if (name === 'acoes') loadAcoes();
     if (name === 'comissoes') loadComissoes();
   }
@@ -430,9 +461,25 @@ tbody tr:hover{background:#fafaf8}
   // Abre o submenu ao iniciar já que admin está ativo
   (function(){ adminOpen = true; document.getElementById('admin-submenu').style.maxHeight = '120px'; document.getElementById('admin-chevron').style.transform = 'rotate(180deg)'; })();
 
+  var comercialOpen = false;
+  function toggleComercial() {
+    comercialOpen = !comercialOpen;
+    var sub = document.getElementById('comercial-submenu');
+    var chev = document.getElementById('comercial-chevron');
+    sub.style.maxHeight = comercialOpen ? '120px' : '0';
+    chev.style.transform = comercialOpen ? 'rotate(180deg)' : '';
+  }
+  function openComercialMenu() {
+    comercialOpen = true;
+    document.getElementById('comercial-submenu').style.maxHeight = '120px';
+    document.getElementById('comercial-chevron').style.transform = 'rotate(180deg)';
+  }
+
   document.getElementById('nav-admin').addEventListener('click', function(){ goTo('admin'); });
   document.getElementById('nav-gestao-contratos').addEventListener('click', function(){ goTo('gestao-contratos'); });
-  document.getElementById('nav-comercial').addEventListener('click', function(){ goTo('comercial'); });
+  document.getElementById('nav-comercial-toggle').addEventListener('click', toggleComercial);
+  document.getElementById('nav-comercial').addEventListener('click', function(){ openComercialMenu(); goTo('comercial'); });
+  document.getElementById('nav-gestao-comercial').addEventListener('click', function(){ openComercialMenu(); goTo('gestao-comercial'); });
   document.getElementById('nav-acoes').addEventListener('click', function(){ goTo('acoes'); });
   document.getElementById('nav-comissoes').addEventListener('click', function(){ goTo('comissoes'); });
   document.getElementById('nav-config').addEventListener('click', function(){ goTo('config'); });
@@ -459,6 +506,7 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('com-month').innerHTML = opts;
     document.getElementById('com2-month').innerHTML = opts;
     document.getElementById('gestao-month').innerHTML = opts;
+    document.getElementById('gcom-month').innerHTML = opts;
   }
 
   // ── SUPABASE ────────────────────────────────────────────────
@@ -652,10 +700,14 @@ tbody tr:hover{background:#fafaf8}
     var r = parseInt(document.getElementById('c-retiradas').value) || 0;
     var re = parseInt(document.getElementById('c-reagenciados').value) || 0;
     var s = c + re - r;
-    var el = document.getElementById('c-saldo');
-    var card = document.getElementById('kpi-saldo-com');
-    el.textContent = (s >= 0 ? '+' : '') + s;
-    card.classList.toggle('neg', s < 0);
+    var txt = (s >= 0 ? '+' : '') + s;
+    var neg = s < 0;
+    // Aba Gestão comercial (edição)
+    var elG = document.getElementById('gc-saldo');
+    if (elG) { elG.textContent = txt; document.getElementById('kpi-saldo-gcom').classList.toggle('neg', neg); }
+    // Aba Indicadores (leitura)
+    var elI = document.getElementById('c-saldo');
+    if (elI) { elI.textContent = txt; document.getElementById('kpi-saldo-com').classList.toggle('neg', neg); }
   }
 
   document.getElementById('c-captacoes').addEventListener('input', recalcComercial);
@@ -679,32 +731,51 @@ tbody tr:hover{background:#fafaf8}
     var el = document.getElementById('c-disponiveis-display');
     var hint = document.getElementById('c-disponiveis-hint');
     var hidden = document.getElementById('c-disponiveis');
+    var elG = document.getElementById('gc-disponiveis');
+    var hintG = document.getElementById('gc-disponiveis-hint');
     if (valor !== null) {
-      el.textContent = valor;
-      hidden.value = valor;
-      hint.textContent = calculado ? '✦ Calculado do mês anterior' : 'Total da carteira no mês';
-      hint.style.color = calculado ? 'var(--accent)' : 'var(--hint)';
+      if (el) el.textContent = valor;
+      if (hidden) hidden.value = valor;
+      if (elG) elG.textContent = valor;
+      var t = calculado ? '✦ Calculado do mês anterior' : 'Total da carteira no mês';
+      var c = calculado ? 'var(--accent)' : 'var(--hint)';
+      if (hint) { hint.textContent = t; hint.style.color = c; }
+      if (hintG) { hintG.textContent = t; hintG.style.color = c; }
     } else {
-      el.textContent = '—';
-      hidden.value = '';
-      hint.textContent = 'Sem dados do mês anterior';
-      hint.style.color = 'var(--hint)';
+      if (el) el.textContent = '—';
+      if (hidden) hidden.value = '';
+      if (elG) elG.textContent = '—';
+      if (hint) { hint.textContent = 'Sem dados do mês anterior'; hint.style.color = 'var(--hint)'; }
+      if (hintG) { hintG.textContent = 'Sem dados do mês anterior'; hintG.style.color = 'var(--hint)'; }
     }
   }
 
   async function loadComercial() {
     var mes = document.getElementById('com-month').value;
+    // Sincroniza o mês com a aba Gestão comercial
+    document.getElementById('gcom-month').value = mes;
     if (!sbClient) return;
     var res = await sbClient.from('comercial_indicadores').select('*').eq('mes', mes).single();
     if (res.data) {
+      // Indicadores — leitura
+      document.getElementById('c-captacoes-display').textContent = res.data.novas_captacoes || '—';
+      document.getElementById('c-retiradas-display').textContent = res.data.retiradas || '—';
+      document.getElementById('c-reagenciados-display').textContent = res.data.imoveis_reagenciados || '—';
+      setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
+      var s = (res.data.novas_captacoes||0) + (res.data.imoveis_reagenciados||0) - (res.data.retiradas||0);
+      document.getElementById('c-saldo').textContent = (s >= 0 ? '+' : '') + s;
+      document.getElementById('kpi-saldo-com').classList.toggle('neg', s < 0);
+      // Gestão comercial — edição
       document.getElementById('c-captacoes').value = res.data.novas_captacoes || '';
       document.getElementById('c-retiradas').value = res.data.retiradas || '';
       document.getElementById('c-reagenciados').value = res.data.imoveis_reagenciados || '';
-      setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
       recalcComercial();
     } else {
-      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
+      document.getElementById('c-captacoes-display').textContent = '—';
+      document.getElementById('c-retiradas-display').textContent = '—';
+      document.getElementById('c-reagenciados-display').textContent = '—';
       document.getElementById('c-saldo').textContent = '—';
+      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
       var calc = await calcDisponiveisParaMes(mes);
       setDisponiveisDisplay(calc.valor, calc.valor !== null);
     }
@@ -731,10 +802,31 @@ tbody tr:hover{background:#fafaf8}
   }
 
   document.getElementById('com-month').addEventListener('change', loadComercial);
+  document.getElementById('gcom-month').addEventListener('change', loadGestaoComercial);
+
+  async function loadGestaoComercial() {
+    var mes = document.getElementById('gcom-month').value;
+    // Sincroniza o mês com a aba Indicadores
+    document.getElementById('com-month').value = mes;
+    if (!sbClient) return;
+    var res = await sbClient.from('comercial_indicadores').select('*').eq('mes', mes).single();
+    if (res.data) {
+      setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
+      document.getElementById('c-captacoes').value = res.data.novas_captacoes || '';
+      document.getElementById('c-retiradas').value = res.data.retiradas || '';
+      document.getElementById('c-reagenciados').value = res.data.imoveis_reagenciados || '';
+      recalcComercial();
+    } else {
+      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
+      document.getElementById('gc-saldo').textContent = '—';
+      var calc = await calcDisponiveisParaMes(mes);
+      setDisponiveisDisplay(calc.valor, calc.valor !== null);
+    }
+  }
 
   document.getElementById('btn-save-com').addEventListener('click', async function(){
     if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
-    var mes = document.getElementById('com-month').value;
+    var mes = document.getElementById('gcom-month').value;
     var captacoes = parseInt(document.getElementById('c-captacoes').value) || 0;
     var retiradas = parseInt(document.getElementById('c-retiradas').value) || 0;
     var reagenciados = parseInt(document.getElementById('c-reagenciados').value) || 0;
@@ -754,6 +846,7 @@ tbody tr:hover{background:#fafaf8}
     showResult('com', !res.error);
     if (!res.error) {
       setDisponiveisDisplay(disponiveis, false);
+      document.getElementById('com-month').value = mes;
       loadComercialChart();
     }
   });
