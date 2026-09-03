@@ -108,10 +108,23 @@ tbody tr:hover{background:#fafaf8}
   </div>
   <nav class="nav">
     <div class="nav-section">Indicadores</div>
-    <button class="nav-item active" id="nav-admin">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h2v2H2v-2zm4-4h2v6H6V8zm4-4h2v10h-2V4z" fill="currentColor"/></svg>
-      Administrativo
+    <button class="nav-item" id="nav-admin-toggle" onclick="toggleAdmin()" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h2v2H2v-2zm4-4h2v6H6V8zm4-4h2v10h-2V4z" fill="currentColor"/></svg>
+        Administrativo
+      </span>
+      <svg id="admin-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform .2s;flex-shrink:0"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+    <div id="admin-submenu" style="display:flex;flex-direction:column;gap:1px;overflow:hidden;max-height:0;transition:max-height .2s ease">
+      <button class="nav-item active" id="nav-admin" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="currentColor"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="currentColor"/><rect x="10" y="1" width="3" height="12" rx="1" fill="currentColor"/></svg>
+        Indicadores
+      </button>
+      <button class="nav-item" id="nav-gestao-contratos" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        Gestão de contratos
+      </button>
+    </div>
     <button class="nav-item" id="nav-comercial">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L10.5 6H15L11.5 9.5L13 14L8 11L3 14L4.5 9.5L1 6H5.5L8 1z" fill="currentColor" opacity=".8"/></svg>
       Comercial
@@ -140,11 +153,11 @@ tbody tr:hover{background:#fafaf8}
 
 <main class="main">
 
-  <!-- ADMINISTRATIVO -->
+  <!-- ADMINISTRATIVO: INDICADORES -->
   <div class="page active" id="page-admin">
     <div class="page-header">
       <div class="header-row">
-        <div><div class="page-title">Administrativo</div><div class="page-sub">Indicadores de contratos e rescisões</div></div>
+        <div><div class="page-title">Indicadores</div><div class="page-sub">Contratos e rescisões do mês</div></div>
         <div class="month-picker"><label>Mês:</label><select class="month-sel" id="admin-month"></select></div>
       </div>
     </div>
@@ -159,6 +172,22 @@ tbody tr:hover{background:#fafaf8}
       <button class="btn-save" id="btn-save-admin">Salvar dados</button>
       <span class="loading-msg" id="admin-loading" style="display:none">Salvando...</span>
       <span class="save-msg" id="admin-ok">✓ Salvo com sucesso</span>
+    </div>
+  </div>
+
+  <!-- ADMINISTRATIVO: GESTÃO DE CONTRATOS -->
+  <div class="page" id="page-gestao-contratos">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Gestão de contratos</div><div class="page-sub">Visão geral da carteira ativa</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="gestao-month"></select></div>
+      </div>
+    </div>
+    <div class="kpi-grid" id="gestao-kpi-grid">
+      <div class="kpi"><div class="kpi-label">Contratos ativos</div><div class="kpi-value" id="g-ativos" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Total acumulado no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Alugados no mês</div><div class="kpi-value" id="g-alugados" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Novas locações efetivadas</div></div>
+      <div class="kpi"><div class="kpi-label">Rescisões no mês</div><div class="kpi-value" id="g-rescisoes" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Contratos encerrados</div></div>
+      <div class="kpi kpi-saldo" id="g-saldo-card"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="g-saldo">—</div><div class="kpi-hint">Alugados menos rescisões</div></div>
     </div>
   </div>
 
@@ -383,12 +412,25 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('page-' + name).classList.add('active');
     document.getElementById('nav-' + name).classList.add('active');
     if (name === 'admin') loadAdmin();
+    if (name === 'gestao-contratos') loadGestaoContratos();
     if (name === 'comercial') loadComercial();
     if (name === 'acoes') loadAcoes();
     if (name === 'comissoes') loadComissoes();
   }
 
+  var adminOpen = false;
+  function toggleAdmin() {
+    adminOpen = !adminOpen;
+    var sub = document.getElementById('admin-submenu');
+    var chev = document.getElementById('admin-chevron');
+    sub.style.maxHeight = adminOpen ? '120px' : '0';
+    chev.style.transform = adminOpen ? 'rotate(180deg)' : '';
+  }
+  // Abre o submenu ao iniciar já que admin está ativo
+  (function(){ adminOpen = true; document.getElementById('admin-submenu').style.maxHeight = '120px'; document.getElementById('admin-chevron').style.transform = 'rotate(180deg)'; })();
+
   document.getElementById('nav-admin').addEventListener('click', function(){ goTo('admin'); });
+  document.getElementById('nav-gestao-contratos').addEventListener('click', function(){ goTo('gestao-contratos'); });
   document.getElementById('nav-comercial').addEventListener('click', function(){ goTo('comercial'); });
   document.getElementById('nav-acoes').addEventListener('click', function(){ goTo('acoes'); });
   document.getElementById('nav-comissoes').addEventListener('click', function(){ goTo('comissoes'); });
@@ -415,6 +457,7 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('admin-month').innerHTML = opts;
     document.getElementById('com-month').innerHTML = opts;
     document.getElementById('com2-month').innerHTML = opts;
+    document.getElementById('gestao-month').innerHTML = opts;
   }
 
   // ── SUPABASE ────────────────────────────────────────────────
@@ -1014,6 +1057,25 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('c2-pessoas').innerHTML = html;
     document.getElementById('com2-result').style.display = 'block';
   });
+
+  // ── GESTÃO DE CONTRATOS ─────────────────────────────────────
+  document.getElementById('gestao-month').addEventListener('change', loadGestaoContratos);
+
+  async function loadGestaoContratos() {
+    var mes = document.getElementById('gestao-month').value;
+    if (!sbClient) return;
+    var res = await sbClient.from('admin_indicadores').select('*').eq('mes', mes).single();
+    if (res.data) {
+      var s = (res.data.contratos_alugados||0) - (res.data.rescisoes||0);
+      document.getElementById('g-ativos').textContent = res.data.contratos_ativos || '—';
+      document.getElementById('g-alugados').textContent = res.data.contratos_alugados || '—';
+      document.getElementById('g-rescisoes').textContent = res.data.rescisoes || '—';
+      document.getElementById('g-saldo').textContent = (s >= 0 ? '+' : '') + s;
+      document.getElementById('g-saldo-card').classList.toggle('neg', s < 0);
+    } else {
+      ['g-ativos','g-alugados','g-rescisoes','g-saldo'].forEach(function(id){ document.getElementById(id).textContent = '—'; });
+    }
+  }
 
   // ── UI HELPERS ──────────────────────────────────────────────
   function showLoading(p) {
