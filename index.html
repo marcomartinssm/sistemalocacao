@@ -142,6 +142,23 @@ tbody tr:hover{background:#fafaf8}
         Gestão comercial
       </button>
     </div>
+    <button class="nav-item" id="nav-desocupacao-toggle" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l5-5.5L13 8M4.5 6.8V13h7V6.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M2 14h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+        Desocupação
+      </span>
+      <svg id="desocupacao-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform .2s;flex-shrink:0"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div id="desocupacao-submenu" style="display:flex;flex-direction:column;gap:1px;overflow:hidden;max-height:0;transition:max-height .2s ease">
+      <button class="nav-item" id="nav-desocupacao" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="currentColor"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="currentColor"/><rect x="10" y="1" width="3" height="12" rx="1" fill="currentColor"/></svg>
+        Indicadores
+      </button>
+      <button class="nav-item" id="nav-gestao-desocupacao" style="padding:7px 12px 7px 32px;font-size:12.5px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        Gestão de desocupação
+      </button>
+    </div>
     <div class="nav-section">Gestão</div>
     <button class="nav-item" id="nav-acoes">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="8" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="10" height="1.5" rx=".75" fill="currentColor"/></svg>
@@ -273,6 +290,66 @@ tbody tr:hover{background:#fafaf8}
       <button class="btn-save" id="btn-save-com">Salvar dados</button>
       <span class="loading-msg" id="com-loading" style="display:none">Salvando...</span>
       <span class="save-msg" id="com-ok">✓ Salvo com sucesso</span>
+    </div>
+  </div>
+
+  <!-- DESOCUPAÇÃO: INDICADORES (leitura + gráfico) -->
+  <div class="page" id="page-desocupacao">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Desocupação</div><div class="page-sub">Rescisões e avisos de desocupação</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="de-month"></select></div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Rescindidos vigente / prazo indet.</div><div class="kpi-value" id="d-vigente-indet" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Rescindidos antes do fim natural do contrato</div></div>
+      <div class="kpi"><div class="kpi-label">Em aviso de desocupação</div><div class="kpi-value" id="d-aviso" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Aguardando desocupação no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Contratos rescindidos</div><div class="kpi-value" id="d-rescindidos" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Total de rescisões no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Duração média de contrato</div><div class="kpi-value" id="d-duracao" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Meses entre início e rescisão</div></div>
+    </div>
+    <div class="chart-card">
+      <h3>Motivo de rescisão</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center">
+        <div id="de-legend-motivo" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)"></div>
+        <div id="de-donut-motivo-wrap" style="position:relative;width:100%;height:220px">
+          <canvas id="de-donut-motivo" role="img" aria-label="Gráfico de rosca com motivos de rescisão">Dados de motivo de rescisão dos contratos do mês.</canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESOCUPAÇÃO: GESTÃO (recebe os dados do formulário externo + edição) -->
+  <div class="page" id="page-gestao-desocupacao">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">Gestão de desocupação</div><div class="page-sub">Contratos em aviso ou já rescindidos no mês</div></div>
+        <div class="month-picker"><label>Mês:</label><select class="month-sel" id="gde-month"></select></div>
+      </div>
+    </div>
+
+    <div class="sec-toolbar" style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+      <button class="btn-add" id="btn-add-desoc">+ Adicionar registro</button>
+      <button class="btn-save" id="btn-save-desoc" style="margin-left:auto">Salvar registros</button>
+      <span class="loading-msg" id="desoc-loading" style="display:none">Salvando...</span>
+      <span class="save-msg" id="desoc-ok">✓ Salvo</span>
+    </div>
+
+    <div class="table-wrap2" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:1000px">
+        <thead>
+          <tr>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;width:150px">Situação</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:100px">Cód. imóvel</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:100px">Nº contrato</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:130px">Início do contrato</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:130px">Data de rescisão</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:170px">Situação contratual</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);width:160px">Motivo</th>
+            <th style="width:36px;border-bottom:1px solid var(--border);background:var(--bg)"></th>
+          </tr>
+        </thead>
+        <tbody id="desoc-tbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -472,6 +549,8 @@ tbody tr:hover{background:#fafaf8}
     if (name === 'admin') { loadAdmin(); }
     if (name === 'comercial') loadComercial();
     if (name === 'gestao-comercial') loadGestaoComercial();
+    if (name === 'desocupacao') loadDesocupacaoIndicadores();
+    if (name === 'gestao-desocupacao') loadGestaoDesocupacao();
     if (name === 'acoes') loadAcoes();
     if (name === 'comissoes') loadComissoes();
     if (name === 'config') loadTipologiasConfig();
@@ -502,11 +581,28 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('comercial-chevron').style.transform = 'rotate(180deg)';
   }
 
+  var desocupacaoOpen = false;
+  function toggleDesocupacao() {
+    desocupacaoOpen = !desocupacaoOpen;
+    var sub = document.getElementById('desocupacao-submenu');
+    var chev = document.getElementById('desocupacao-chevron');
+    sub.style.maxHeight = desocupacaoOpen ? '120px' : '0';
+    chev.style.transform = desocupacaoOpen ? 'rotate(180deg)' : '';
+  }
+  function openDesocupacaoMenu() {
+    desocupacaoOpen = true;
+    document.getElementById('desocupacao-submenu').style.maxHeight = '120px';
+    document.getElementById('desocupacao-chevron').style.transform = 'rotate(180deg)';
+  }
+
   document.getElementById('nav-admin').addEventListener('click', function(){ goTo('admin'); });
   document.getElementById('nav-gestao-contratos').addEventListener('click', function(){ goTo('gestao-contratos'); });
   document.getElementById('nav-comercial-toggle').addEventListener('click', toggleComercial);
   document.getElementById('nav-comercial').addEventListener('click', function(){ openComercialMenu(); goTo('comercial'); });
   document.getElementById('nav-gestao-comercial').addEventListener('click', function(){ openComercialMenu(); goTo('gestao-comercial'); });
+  document.getElementById('nav-desocupacao-toggle').addEventListener('click', toggleDesocupacao);
+  document.getElementById('nav-desocupacao').addEventListener('click', function(){ openDesocupacaoMenu(); goTo('desocupacao'); });
+  document.getElementById('nav-gestao-desocupacao').addEventListener('click', function(){ openDesocupacaoMenu(); goTo('gestao-desocupacao'); });
   document.getElementById('nav-acoes').addEventListener('click', function(){ goTo('acoes'); });
   document.getElementById('nav-comissoes').addEventListener('click', function(){ goTo('comissoes'); });
   document.getElementById('nav-config').addEventListener('click', function(){ goTo('config'); });
@@ -534,6 +630,8 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('com2-month').innerHTML = opts;
     document.getElementById('gestao-month').innerHTML = opts;
     document.getElementById('gcom-month').innerHTML = opts;
+    document.getElementById('de-month').innerHTML = opts;
+    document.getElementById('gde-month').innerHTML = opts;
   }
 
   // ── SUPABASE ────────────────────────────────────────────────
@@ -1262,6 +1360,162 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('c2-pessoas').innerHTML = html;
     document.getElementById('com2-result').style.display = 'block';
   });
+
+  // ── DESOCUPAÇÃO ──────────────────────────────────────────────
+  var SITUACAO_OPTS = ['Aviso de desocupação','Rescindido'];
+  var SITUACAO_CONTRATUAL_OPTS = ['Contrato vigente','Prazo indeterminado','Fim de vigência'];
+  var MOTIVO_OPTS = ['Fim do contrato','Inadimplência','Pedido do locatário','Pedido do locador','Venda do imóvel','Outros'];
+
+  var desocRows = [];
+  var desocId = 0;
+
+  function desocAddRow(data) {
+    var id = desocId++;
+    desocRows.push({
+      id: id,
+      dbId: data ? data.id : null,
+      situacao: data ? (data.situacao||'Aviso de desocupação') : 'Aviso de desocupação',
+      cod: data ? (data.cod_imovel||'') : '',
+      contrato: data ? (data.num_contrato||'') : '',
+      dataInicio: data ? (data.data_inicio||'') : '',
+      dataRescisao: data ? (data.data_rescisao||'') : '',
+      situacaoContratual: data ? (data.situacao_contratual||'') : '',
+      motivo: data ? (data.motivo||'') : ''
+    });
+    desocRender();
+  }
+
+  function desocSituacaoOpts(current) {
+    return SITUACAO_OPTS.map(function(o){ return '<option value="'+o+'"'+(current===o?' selected':'')+'>'+o+'</option>'; }).join('');
+  }
+
+  function desocRender() {
+    var tbody = document.getElementById('desoc-tbody');
+    if (!desocRows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--hint);font-size:13px">Nenhum registro. Clique em "+ Adicionar registro" ou aguarde os envios do formulário externo.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = desocRows.map(function(r){
+      return '<tr>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="situacao" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:140px">'+desocSituacaoOpts(r.situacao)+'</select></td>'
+        +'<td style="padding:8px 14px"><input data-id="'+r.id+'" data-field="cod" value="'+r.cod+'" placeholder="IM-001" style="width:90px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input data-id="'+r.id+'" data-field="contrato" value="'+r.contrato+'" placeholder="CT-001" style="width:90px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input type="date" data-id="'+r.id+'" data-field="dataInicio" value="'+r.dataInicio+'" style="width:120px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><input type="date" data-id="'+r.id+'" data-field="dataRescisao" value="'+r.dataRescisao+'" style="width:120px;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit"></td>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="situacaoContratual" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:150px">'+selOpts(SITUACAO_CONTRATUAL_OPTS, r.situacaoContratual)+'</select></td>'
+        +'<td style="padding:8px 14px"><select data-id="'+r.id+'" data-field="motivo" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;width:150px">'+selOpts(MOTIVO_OPTS, r.motivo)+'</select></td>'
+        +'<td style="padding:8px 14px"><button data-id="'+r.id+'" data-action="del" style="background:none;border:none;color:var(--hint);font-size:18px;cursor:pointer;line-height:1;padding:0 4px">×</button></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  document.getElementById('desoc-tbody').addEventListener('input', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id) || !field) return;
+    var r = desocRows.find(function(x){ return x.id===id; });
+    if (r) r[field] = el.value;
+  });
+  document.getElementById('desoc-tbody').addEventListener('change', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id) || !field) return;
+    var r = desocRows.find(function(x){ return x.id===id; });
+    if (r) r[field] = el.value;
+  });
+  document.getElementById('desoc-tbody').addEventListener('click', async function(e){
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var id = parseInt(el.dataset.id);
+    var r = desocRows.find(function(x){ return x.id===id; });
+    if (!r) return;
+    if (!confirm('Remover este registro?')) return;
+    if (r.dbId && sbClient) {
+      var del = await sbClient.from('desocupacoes').delete().eq('id', r.dbId);
+      if (del.error) { alert('Erro ao remover no banco de dados. Tente novamente.'); return; }
+    }
+    desocRows = desocRows.filter(function(x){ return x.id!==id; });
+    desocRender();
+  });
+
+  document.getElementById('btn-add-desoc').addEventListener('click', function(){ desocAddRow(null); });
+  document.getElementById('gde-month').addEventListener('change', loadGestaoDesocupacao);
+  document.getElementById('de-month').addEventListener('change', loadDesocupacaoIndicadores);
+
+  async function loadGestaoDesocupacao() {
+    var mes = document.getElementById('gde-month').value;
+    document.getElementById('de-month').value = mes;
+    desocRows = []; desocId = 0;
+    if (!sbClient) { desocRender(); return; }
+    var res = await sbClient.from('desocupacoes').select('*').eq('mes', mes).order('criado_em', {ascending:true});
+    if (res.data && res.data.length) {
+      res.data.forEach(function(d){ desocAddRow(d); });
+    } else {
+      desocRender();
+    }
+  }
+
+  document.getElementById('btn-save-desoc').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
+    var mes = document.getElementById('gde-month').value;
+    showLoading('desoc');
+    var hasError = false;
+    for (var i = 0; i < desocRows.length; i++) {
+      var r = desocRows[i];
+      var payload = {
+        mes: mes, situacao: r.situacao, cod_imovel: r.cod, num_contrato: r.contrato,
+        data_inicio: r.dataInicio || null, data_rescisao: r.dataRescisao || null,
+        situacao_contratual: r.situacaoContratual || null, motivo: r.motivo || null
+      };
+      if (r.dbId) {
+        var upd = await sbClient.from('desocupacoes').update(payload).eq('id', r.dbId);
+        if (upd.error) hasError = true;
+      } else {
+        var ins = await sbClient.from('desocupacoes').insert(payload).select().single();
+        if (!ins.error && ins.data) r.dbId = ins.data.id;
+        else hasError = true;
+      }
+    }
+    showResult('desoc', !hasError);
+    if (!hasError) loadDesocupacaoIndicadores();
+  });
+
+  function mesesEntre(dataIni, dataFim) {
+    var d1 = new Date(dataIni + 'T00:00:00');
+    var d2 = new Date(dataFim + 'T00:00:00');
+    var dias = (d2 - d1) / (1000*60*60*24);
+    return dias / 30.44;
+  }
+
+  async function loadDesocupacaoIndicadores() {
+    var mes = document.getElementById('de-month').value;
+    document.getElementById('gde-month').value = mes;
+    if (!sbClient) return;
+    var res = await sbClient.from('desocupacoes').select('*').eq('mes', mes);
+    var linhas = res.data || [];
+
+    var rescindidos = linhas.filter(function(l){ return l.situacao === 'Rescindido'; });
+    var avisos = linhas.filter(function(l){ return l.situacao === 'Aviso de desocupação'; });
+    var vigenteIndet = rescindidos.filter(function(l){ return l.situacao_contratual === 'Contrato vigente' || l.situacao_contratual === 'Prazo indeterminado'; });
+
+    document.getElementById('d-vigente-indet').textContent = vigenteIndet.length || '—';
+    document.getElementById('d-aviso').textContent = avisos.length || '—';
+    document.getElementById('d-rescindidos').textContent = rescindidos.length || '—';
+
+    var duracoes = rescindidos.filter(function(l){ return l.data_inicio && l.data_rescisao; }).map(function(l){ return mesesEntre(l.data_inicio, l.data_rescisao); });
+    if (duracoes.length) {
+      var media = duracoes.reduce(function(a,b){ return a+b; }, 0) / duracoes.length;
+      document.getElementById('d-duracao').textContent = Math.round(media) + ' m';
+    } else {
+      document.getElementById('d-duracao').textContent = '—';
+    }
+
+    var motivoCount = {};
+    rescindidos.forEach(function(l){
+      var m = l.motivo || 'Não informado';
+      motivoCount[m] = (motivoCount[m]||0) + 1;
+    });
+    var motivoData = Object.keys(motivoCount).map(function(k){ return {label:k, count:motivoCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
+    renderDonut('de-donut-motivo', 'de-legend-motivo', motivoData);
+  }
 
   // ── GESTÃO DE CONTRATOS ─────────────────────────────────────
   document.getElementById('gestao-month').addEventListener('change', loadGestaoContratos);
