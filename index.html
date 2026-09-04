@@ -236,6 +236,22 @@ tbody tr:hover{background:#fafaf8}
         </div>
       </div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>Finalidade</h3>
+        <div id="com-legend-finalidade" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
+        <div id="com-donut-finalidade-wrap" style="position:relative;width:100%;height:200px">
+          <canvas id="com-donut-finalidade" role="img" aria-label="Gráfico de rosca com a proporção residencial x comercial">Dados de finalidade dos imóveis do mês.</canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>Tipologia</h3>
+        <div id="com-legend-tipologia" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
+        <div id="com-donut-tipologia-wrap" style="position:relative;width:100%;height:200px">
+          <canvas id="com-donut-tipologia" role="img" aria-label="Gráfico de rosca com a tipologia dos imóveis">Dados de tipologia dos imóveis do mês.</canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- COMERCIAL: GESTÃO COMERCIAL (edição + salvar) -->
@@ -364,6 +380,16 @@ tbody tr:hover{background:#fafaf8}
         5. Copie a chave <em>anon public</em> e cole acima
       </div>
     </div>
+
+    <div class="config-card">
+      <h3>Tipologias de imóvel</h3>
+      <p>Usadas no formulário externo de agenciamentos e nos indicadores da área Comercial.</p>
+      <div id="tipo-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="tipo-novo" placeholder="Ex: Galpão" style="flex:1">
+        <button class="btn-save" id="btn-add-tipo">Adicionar</button>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -448,6 +474,7 @@ tbody tr:hover{background:#fafaf8}
     if (name === 'gestao-comercial') loadGestaoComercial();
     if (name === 'acoes') loadAcoes();
     if (name === 'comissoes') loadComissoes();
+    if (name === 'config') loadTipologiasConfig();
   }
 
   var adminOpen = false;
@@ -556,6 +583,53 @@ tbody tr:hover{background:#fafaf8}
       dot.style.background = '#b45309'; lbl.textContent = 'Verificando...';
     }
   }
+
+  // ── TIPOLOGIAS DE IMÓVEL (Configurações) ─────────────────────
+  var tipologias = [];
+
+  async function loadTipologiasConfig() {
+    var list = document.getElementById('tipo-list');
+    if (!sbClient) { list.innerHTML = '<span style="font-size:12px;color:var(--hint)">Configure a conexão com o Supabase acima primeiro.</span>'; return; }
+    var res = await sbClient.from('comercial_tipologias').select('*').order('nome', {ascending:true});
+    tipologias = res.data || [];
+    renderTipologiasConfig();
+  }
+
+  function renderTipologiasConfig() {
+    var list = document.getElementById('tipo-list');
+    if (!tipologias.length) {
+      list.innerHTML = '<span style="font-size:12px;color:var(--hint)">Nenhuma tipologia cadastrada ainda.</span>';
+      return;
+    }
+    list.innerHTML = tipologias.map(function(t){
+      return '<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;border-radius:20px;background:var(--accent-bg);color:var(--accent);font-size:12.5px;font-weight:500">'
+        + escHtml(t.nome)
+        + ' <button data-id="'+t.id+'" data-action="del-tipo" title="Remover" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:15px;line-height:1;padding:0">×</button></span>';
+    }).join('');
+  }
+
+  document.getElementById('btn-add-tipo').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro.'); return; }
+    var input = document.getElementById('tipo-novo');
+    var nome = input.value.trim();
+    if (!nome) return;
+    var res = await sbClient.from('comercial_tipologias').insert({nome: nome});
+    if (res.error) { alert('Não foi possível adicionar (talvez essa tipologia já exista).'); return; }
+    input.value = '';
+    loadTipologiasConfig();
+  });
+
+  document.getElementById('tipo-novo').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('btn-add-tipo').click();
+  });
+
+  document.getElementById('tipo-list').addEventListener('click', async function(e){
+    var el = e.target.closest('[data-action="del-tipo"]');
+    if (!el || !sbClient) return;
+    if (!confirm('Remover esta tipologia? Ela deixa de aparecer no formulário de agenciamentos.')) return;
+    await sbClient.from('comercial_tipologias').delete().eq('id', el.dataset.id);
+    loadTipologiasConfig();
+  });
 
   // ── ADMINISTRATIVO ──────────────────────────────────────────
   function recalcAdmin() {
@@ -781,6 +855,7 @@ tbody tr:hover{background:#fafaf8}
     }
     loadComercialChart();
     loadComercialOrigemFianca();
+    loadCarteiraIndicadores();
   }
 
   async function loadComercialOrigemFianca() {
@@ -799,6 +874,26 @@ tbody tr:hover{background:#fafaf8}
     var fiancaData = Object.keys(fiancaCount).map(function(k){ return {label:k, count:fiancaCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
     renderDonut('com-donut-midia', 'com-legend-midia', midiaData);
     renderDonut('com-donut-fianca', 'com-legend-fianca', fiancaData);
+  }
+
+  // Indicadores de finalidade (residencial/comercial) e tipologia,
+  // alimentados pelo formulário externo "relatorio-agenciamentos"
+  async function loadCarteiraIndicadores() {
+    if (!sbClient) return;
+    var mes = document.getElementById('com-month').value;
+    var res = await sbClient.from('carteira_movimentos').select('finalidade,tipologia').eq('mes', mes);
+    var linhas = res.data || [];
+    var finCount = {}, tipoCount = {};
+    linhas.forEach(function(l){
+      var f = l.finalidade || 'Não informado';
+      var t = l.tipologia || 'Não informado';
+      finCount[f] = (finCount[f]||0) + 1;
+      tipoCount[t] = (tipoCount[t]||0) + 1;
+    });
+    var finData = Object.keys(finCount).map(function(k){ return {label:k, count:finCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
+    var tipoData = Object.keys(tipoCount).map(function(k){ return {label:k, count:tipoCount[k]}; }).sort(function(a,b){ return b.count-a.count; });
+    renderDonut('com-donut-finalidade', 'com-legend-finalidade', finData);
+    renderDonut('com-donut-tipologia', 'com-legend-tipologia', tipoData);
   }
 
   document.getElementById('com-month').addEventListener('change', loadComercial);
