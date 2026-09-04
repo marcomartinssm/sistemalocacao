@@ -285,9 +285,9 @@ tbody tr:hover{background:#fafaf8}
     </div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">Imóveis disponíveis</div><div class="kpi-value" id="gc-disponiveis" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint" id="gc-disponiveis-hint">Calculado automaticamente</div></div>
-      <div class="kpi"><div class="kpi-label">Novas captações</div><input class="kpi-input" id="c-captacoes" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis captados no mês</div></div>
-      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><input class="kpi-input" id="c-retiradas" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retirados da carteira</div></div>
-      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><input class="kpi-input" id="c-reagenciados" type="number" min="0" placeholder="0"><div class="kpi-hint">Imóveis retomados para carteira</div></div>
+      <div class="kpi"><div class="kpi-label">Novas captações</div><div class="kpi-value" id="gc-captacoes" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
+      <div class="kpi"><div class="kpi-label">Retiradas no mês</div><div class="kpi-value" id="gc-retiradas" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
+      <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><div class="kpi-value" id="gc-reagenciados" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
       <div class="kpi kpi-saldo" id="kpi-saldo-gcom"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="gc-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
     </div>
     <div class="save-bar">
@@ -953,24 +953,34 @@ tbody tr:hover{background:#fafaf8}
   }
 
   // ── COMERCIAL ───────────────────────────────────────────────
-  function recalcComercial() {
-    var c = parseInt(document.getElementById('c-captacoes').value) || 0;
-    var r = parseInt(document.getElementById('c-retiradas').value) || 0;
-    var re = parseInt(document.getElementById('c-reagenciados').value) || 0;
+  // Conta as captações/retiradas/reagenciamentos do mês a partir do
+  // formulário externo "relatorio-agenciamentos" (tabela carteira_movimentos)
+  var gcCounts = {captacoes:0, retiradas:0, reagenciados:0};
+
+  async function countCarteiraMovimentos(mes) {
+    if (!sbClient) return {captacoes:0, retiradas:0, reagenciados:0};
+    var res = await sbClient.from('carteira_movimentos').select('tipo_movimento').eq('mes', mes);
+    var linhas = res.data || [];
+    var out = {captacoes:0, retiradas:0, reagenciados:0};
+    linhas.forEach(function(l){
+      if (l.tipo_movimento === 'captacao') out.captacoes++;
+      else if (l.tipo_movimento === 'retirada') out.retiradas++;
+      else if (l.tipo_movimento === 'reagenciamento') out.reagenciados++;
+    });
+    return out;
+  }
+
+  function recalcComercial(c, r, re) {
     var s = c + re - r;
     var txt = (s >= 0 ? '+' : '') + s;
     var neg = s < 0;
-    // Aba Gestão comercial (edição)
+    // Aba Gestão de captação (leitura, vinda do formulário)
     var elG = document.getElementById('gc-saldo');
     if (elG) { elG.textContent = txt; document.getElementById('kpi-saldo-gcom').classList.toggle('neg', neg); }
-    // Aba Indicadores (leitura)
+    // Aba Indicadores (leitura, snapshot salvo)
     var elI = document.getElementById('c-saldo');
     if (elI) { elI.textContent = txt; document.getElementById('kpi-saldo-com').classList.toggle('neg', neg); }
   }
-
-  document.getElementById('c-captacoes').addEventListener('input', recalcComercial);
-  document.getElementById('c-retiradas').addEventListener('input', recalcComercial);
-  document.getElementById('c-reagenciados').addEventListener('input', recalcComercial);
 
   async function calcDisponiveisParaMes(mes) {
     var anterior = prevMes(mes);
@@ -1023,17 +1033,11 @@ tbody tr:hover{background:#fafaf8}
       var s = (res.data.novas_captacoes||0) + (res.data.imoveis_reagenciados||0) - (res.data.retiradas||0);
       document.getElementById('c-saldo').textContent = (s >= 0 ? '+' : '') + s;
       document.getElementById('kpi-saldo-com').classList.toggle('neg', s < 0);
-      // Gestão comercial — edição
-      document.getElementById('c-captacoes').value = res.data.novas_captacoes || '';
-      document.getElementById('c-retiradas').value = res.data.retiradas || '';
-      document.getElementById('c-reagenciados').value = res.data.imoveis_reagenciados || '';
-      recalcComercial();
     } else {
       document.getElementById('c-captacoes-display').textContent = '—';
       document.getElementById('c-retiradas-display').textContent = '—';
       document.getElementById('c-reagenciados-display').textContent = '—';
       document.getElementById('c-saldo').textContent = '—';
-      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
       var calc = await calcDisponiveisParaMes(mes);
       setDisponiveisDisplay(calc.valor, calc.valor !== null);
     }
@@ -1088,27 +1092,28 @@ tbody tr:hover{background:#fafaf8}
     // Sincroniza o mês com a aba Indicadores
     document.getElementById('com-month').value = mes;
     if (!sbClient) return;
-    var res = await sbClient.from('comercial_indicadores').select('*').eq('mes', mes).single();
+
+    var res = await sbClient.from('comercial_indicadores').select('imoveis_disponiveis').eq('mes', mes).single();
     if (res.data) {
       setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
-      document.getElementById('c-captacoes').value = res.data.novas_captacoes || '';
-      document.getElementById('c-retiradas').value = res.data.retiradas || '';
-      document.getElementById('c-reagenciados').value = res.data.imoveis_reagenciados || '';
-      recalcComercial();
     } else {
-      ['c-captacoes','c-retiradas','c-reagenciados'].forEach(function(id){ document.getElementById(id).value=''; });
-      document.getElementById('gc-saldo').textContent = '—';
       var calc = await calcDisponiveisParaMes(mes);
       setDisponiveisDisplay(calc.valor, calc.valor !== null);
     }
+
+    gcCounts = await countCarteiraMovimentos(mes);
+    document.getElementById('gc-captacoes').textContent = gcCounts.captacoes;
+    document.getElementById('gc-retiradas').textContent = gcCounts.retiradas;
+    document.getElementById('gc-reagenciados').textContent = gcCounts.reagenciados;
+    recalcComercial(gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados);
   }
 
   document.getElementById('btn-save-com').addEventListener('click', async function(){
     if (!sbClient) { alert('Configure a conexão com o Supabase primeiro (menu Configurações).'); return; }
     var mes = document.getElementById('gcom-month').value;
-    var captacoes = parseInt(document.getElementById('c-captacoes').value) || 0;
-    var retiradas = parseInt(document.getElementById('c-retiradas').value) || 0;
-    var reagenciados = parseInt(document.getElementById('c-reagenciados').value) || 0;
+    var captacoes = gcCounts.captacoes || 0;
+    var retiradas = gcCounts.retiradas || 0;
+    var reagenciados = gcCounts.reagenciados || 0;
 
     var calc = await calcDisponiveisParaMes(mes);
     var disponiveis = calc.valor !== null ? calc.valor : (parseInt(document.getElementById('c-disponiveis').value) || 0);
