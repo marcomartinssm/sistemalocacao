@@ -467,6 +467,16 @@ tbody tr:hover{background:#fafaf8}
         <button class="btn-save" id="btn-add-tipo">Adicionar</button>
       </div>
     </div>
+
+    <div class="config-card">
+      <h3>Motivos de rescisão</h3>
+      <p>Usados no formulário externo de desocupação e na tabela/gráfico da área Desocupação.</p>
+      <div id="motivo-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="motivo-novo" placeholder="Ex: Transferência de trabalho" style="flex:1">
+        <button class="btn-save" id="btn-add-motivo">Adicionar</button>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -553,7 +563,7 @@ tbody tr:hover{background:#fafaf8}
     if (name === 'gestao-desocupacao') loadGestaoDesocupacao();
     if (name === 'acoes') loadAcoes();
     if (name === 'comissoes') loadComissoes();
-    if (name === 'config') loadTipologiasConfig();
+    if (name === 'config') { loadTipologiasConfig(); loadMotivosConfig(); }
   }
 
   var adminOpen = false;
@@ -728,6 +738,65 @@ tbody tr:hover{background:#fafaf8}
     await sbClient.from('comercial_tipologias').delete().eq('id', el.dataset.id);
     loadTipologiasConfig();
   });
+
+  // ── MOTIVOS DE RESCISÃO (Configurações) ───────────────────────
+  var motivosConfig = [];
+
+  async function loadMotivosConfig() {
+    var list = document.getElementById('motivo-list');
+    if (!sbClient) { list.innerHTML = '<span style="font-size:12px;color:var(--hint)">Configure a conexão com o Supabase acima primeiro.</span>'; return; }
+    var res = await sbClient.from('desocupacao_motivos').select('*').order('nome', {ascending:true});
+    motivosConfig = res.data || [];
+    renderMotivosConfig();
+  }
+
+  function renderMotivosConfig() {
+    var list = document.getElementById('motivo-list');
+    if (!motivosConfig.length) {
+      list.innerHTML = '<span style="font-size:12px;color:var(--hint)">Nenhum motivo cadastrado ainda.</span>';
+      return;
+    }
+    list.innerHTML = motivosConfig.map(function(t){
+      return '<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;border-radius:20px;background:var(--accent-bg);color:var(--accent);font-size:12.5px;font-weight:500">'
+        + escHtml(t.nome)
+        + ' <button data-id="'+t.id+'" data-action="del-motivo" title="Remover" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:15px;line-height:1;padding:0">×</button></span>';
+    }).join('');
+  }
+
+  document.getElementById('btn-add-motivo').addEventListener('click', async function(){
+    if (!sbClient) { alert('Configure a conexão com o Supabase primeiro.'); return; }
+    var input = document.getElementById('motivo-novo');
+    var nome = input.value.trim();
+    if (!nome) return;
+    var res = await sbClient.from('desocupacao_motivos').insert({nome: nome});
+    if (res.error) { alert('Não foi possível adicionar (talvez esse motivo já exista).'); return; }
+    input.value = '';
+    await loadMotivosConfig();
+    loadMotivosOptions();
+  });
+
+  document.getElementById('motivo-novo').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('btn-add-motivo').click();
+  });
+
+  document.getElementById('motivo-list').addEventListener('click', async function(e){
+    var el = e.target.closest('[data-action="del-motivo"]');
+    if (!el || !sbClient) return;
+    if (!confirm('Remover este motivo? Ele deixa de aparecer no formulário de desocupação.')) return;
+    await sbClient.from('desocupacao_motivos').delete().eq('id', el.dataset.id);
+    await loadMotivosConfig();
+    loadMotivosOptions();
+  });
+
+  // Lista usada no select da Gestão de desocupação (com fallback caso a tabela esteja vazia)
+  var MOTIVO_FALLBACK = ['Fim do contrato','Inadimplência','Pedido do locatário','Pedido do locador','Venda do imóvel','Outros'];
+  async function loadMotivosOptions() {
+    if (!sbClient) return;
+    var res = await sbClient.from('desocupacao_motivos').select('nome').order('nome', {ascending:true});
+    if (!res.error && res.data && res.data.length) {
+      MOTIVO_OPTS = res.data.map(function(d){ return d.nome; });
+    }
+  }
 
   // ── ADMINISTRATIVO ──────────────────────────────────────────
   function recalcAdmin() {
@@ -1364,7 +1433,7 @@ tbody tr:hover{background:#fafaf8}
   // ── DESOCUPAÇÃO ──────────────────────────────────────────────
   var SITUACAO_OPTS = ['Aviso de desocupação','Rescindido'];
   var SITUACAO_CONTRATUAL_OPTS = ['Contrato vigente','Prazo indeterminado','Fim de vigência'];
-  var MOTIVO_OPTS = ['Fim do contrato','Inadimplência','Pedido do locatário','Pedido do locador','Venda do imóvel','Outros'];
+  var MOTIVO_OPTS = MOTIVO_FALLBACK.slice();
 
   var desocRows = [];
   var desocId = 0;
@@ -1445,6 +1514,7 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('de-month').value = mes;
     desocRows = []; desocId = 0;
     if (!sbClient) { desocRender(); return; }
+    await loadMotivosOptions();
     var res = await sbClient.from('desocupacoes').select('*').eq('mes', mes).order('criado_em', {ascending:true});
     if (res.data && res.data.length) {
       res.data.forEach(function(d){ desocAddRow(d); });
