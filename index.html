@@ -1132,13 +1132,13 @@ tbody tr:hover{background:#fafaf8}
   }
 
   async function calcDisponiveisParaMes(mes) {
+    // O disponível de um mês é o saldo/variação da carteira do mês anterior
+    // (já descontando os imóveis alugados naquele mês, via comissões)
     var anterior = prevMes(mes);
     var res = await sbClient.from('comercial_indicadores').select('imoveis_disponiveis,novas_captacoes,retiradas,imoveis_reagenciados').eq('mes', anterior).single();
     if (res.data) {
-      var disp = (res.data.imoveis_disponiveis || 0)
-               + (res.data.novas_captacoes || 0)
-               + (res.data.imoveis_reagenciados || 0)
-               - (res.data.retiradas || 0);
+      var alugadosAnterior = await countAlugadosComissoes(anterior);
+      var disp = calcSaldoCarteira(res.data.imoveis_disponiveis || 0, res.data.novas_captacoes, res.data.retiradas, res.data.imoveis_reagenciados, alugadosAnterior);
       return { valor: disp, origem: 'calculado' };
     }
     return { valor: null, origem: 'sem_dados' };
