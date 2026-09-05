@@ -345,7 +345,7 @@ tbody tr:hover{background:#fafaf8}
       <div class="kpi"><div class="kpi-label">Rescindidos vigente / prazo indet.</div><div class="kpi-value" id="d-vigente-indet" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Rescindidos antes do fim natural do contrato</div></div>
       <div class="kpi"><div class="kpi-label">Em aviso de desocupação</div><div class="kpi-value" id="d-aviso" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Aguardando desocupação no mês</div></div>
       <div class="kpi"><div class="kpi-label">Contratos rescindidos</div><div class="kpi-value" id="d-rescindidos" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Total de rescisões no mês</div></div>
-      <div class="kpi"><div class="kpi-label">Duração média de contrato</div><div class="kpi-value" id="d-duracao" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Meses entre início e rescisão</div></div>
+      <div class="kpi"><div class="kpi-label">Duração média de contrato</div><div class="kpi-value" id="d-duracao" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Dias entre início e rescisão</div></div>
     </div>
     <div class="chart-card">
       <h3>Motivo de rescisão</h3>
@@ -1738,11 +1738,10 @@ tbody tr:hover{background:#fafaf8}
     if (!hasError) loadDesocupacaoIndicadores();
   });
 
-  function mesesEntre(dataIni, dataFim) {
+  function diasEntre(dataIni, dataFim) {
     var d1 = new Date(dataIni + 'T00:00:00');
     var d2 = new Date(dataFim + 'T00:00:00');
-    var dias = (d2 - d1) / (1000*60*60*24);
-    return dias / 30.44;
+    return (d2 - d1) / (1000*60*60*24);
   }
 
   async function loadDesocupacaoIndicadores() {
@@ -1760,10 +1759,10 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('d-aviso').textContent = avisos.length || '—';
     document.getElementById('d-rescindidos').textContent = rescindidos.length || '—';
 
-    var duracoes = rescindidos.filter(function(l){ return l.data_inicio && l.data_rescisao; }).map(function(l){ return mesesEntre(l.data_inicio, l.data_rescisao); });
+    var duracoes = rescindidos.filter(function(l){ return l.data_inicio && l.data_rescisao; }).map(function(l){ return diasEntre(l.data_inicio, l.data_rescisao); });
     if (duracoes.length) {
       var media = duracoes.reduce(function(a,b){ return a+b; }, 0) / duracoes.length;
-      document.getElementById('d-duracao').textContent = Math.round(media) + ' m';
+      document.getElementById('d-duracao').textContent = Math.round(media) + ' d';
     } else {
       document.getElementById('d-duracao').textContent = '—';
     }
