@@ -238,7 +238,7 @@ tbody tr:hover{background:#fafaf8}
       <div class="kpi"><div class="kpi-label">Novas captações</div><div class="kpi-value" id="c-captacoes-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis captados no mês</div></div>
       <div class="kpi"><div class="kpi-label">Retiradas no mês</div><div class="kpi-value" id="c-retiradas-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis retirados da carteira</div></div>
       <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><div class="kpi-value" id="c-reagenciados-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis retomados para carteira</div></div>
-      <div class="kpi kpi-saldo" id="kpi-saldo-com"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="c-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
+      <div class="kpi kpi-saldo" id="kpi-saldo-com"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="c-saldo">—</div><div class="kpi-hint">Disponíveis + captações + reagenciados − retiradas − alugados</div></div>
     </div>
     <div class="chart-card"><h3>Histórico dos últimos 6 meses</h3><div class="bar-chart" id="com-chart"></div><div class="bar-legend"><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#1a7a4a"></div>Captações</div><div class="bar-legend-item"><div class="bar-legend-dot" style="background:#fca5a5"></div>Retiradas</div></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
@@ -288,7 +288,7 @@ tbody tr:hover{background:#fafaf8}
       <div class="kpi"><div class="kpi-label">Novas captações</div><div class="kpi-value" id="gc-captacoes" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
       <div class="kpi"><div class="kpi-label">Retiradas no mês</div><div class="kpi-value" id="gc-retiradas" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
       <div class="kpi"><div class="kpi-label">Reagenciados no mês</div><div class="kpi-value" id="gc-reagenciados" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Vindo do formulário de agenciamentos</div></div>
-      <div class="kpi kpi-saldo" id="kpi-saldo-gcom"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="gc-saldo">—</div><div class="kpi-hint">Captações + reagenciados − retiradas</div></div>
+      <div class="kpi kpi-saldo" id="kpi-saldo-gcom"><div class="kpi-label">Variação da carteira</div><div class="kpi-value" id="gc-saldo">—</div><div class="kpi-hint">Disponíveis + captações + reagenciados − retiradas − alugados</div></div>
     </div>
 
     <div class="page-header" style="margin-bottom:16px">
@@ -994,15 +994,33 @@ tbody tr:hover{background:#fafaf8}
     return out;
   }
 
-  function recalcComercial(c, r, re) {
-    var s = c + re - r;
+  // Conta quantos contratos (imóveis alugados) entraram no relatório de Comissões no mês
+  async function countAlugadosComissoes(mes) {
+    if (!sbClient) return 0;
+    var res = await sbClient.from('comissoes_contratos').select('id').eq('mes', mes);
+    return (res.data || []).length;
+  }
+
+  // Disponíveis + captações + reagenciados − retiradas − alugados (comissões)
+  function calcSaldoCarteira(disponiveis, captacoes, retiradas, reagenciados, alugados) {
+    if (disponiveis === null || disponiveis === undefined) return null;
+    return disponiveis + (captacoes||0) + (reagenciados||0) - (retiradas||0) - (alugados||0);
+  }
+
+  function recalcComercial(disponiveis, captacoes, retiradas, reagenciados, alugados) {
+    var s = calcSaldoCarteira(disponiveis, captacoes, retiradas, reagenciados, alugados);
+    var elG = document.getElementById('gc-saldo');
+    var elI = document.getElementById('c-saldo');
+    if (s === null) {
+      if (elG) { elG.textContent = '—'; document.getElementById('kpi-saldo-gcom').classList.remove('neg'); }
+      if (elI) { elI.textContent = '—'; document.getElementById('kpi-saldo-com').classList.remove('neg'); }
+      return;
+    }
     var txt = (s >= 0 ? '+' : '') + s;
     var neg = s < 0;
     // Aba Gestão de captação (leitura, vinda do formulário)
-    var elG = document.getElementById('gc-saldo');
     if (elG) { elG.textContent = txt; document.getElementById('kpi-saldo-gcom').classList.toggle('neg', neg); }
     // Aba Indicadores (leitura, snapshot salvo)
-    var elI = document.getElementById('c-saldo');
     if (elI) { elI.textContent = txt; document.getElementById('kpi-saldo-com').classList.toggle('neg', neg); }
   }
 
@@ -1094,7 +1112,9 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('gc-captacoes').textContent = gcCounts.captacoes;
     document.getElementById('gc-retiradas').textContent = gcCounts.retiradas;
     document.getElementById('gc-reagenciados').textContent = gcCounts.reagenciados;
-    recalcComercial(gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados);
+    var dispVal = document.getElementById('c-disponiveis').value;
+    var alugadosDel = await countAlugadosComissoes(mes);
+    recalcComercial(dispVal === '' ? null : parseInt(dispVal), gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados, alugadosDel);
   });
 
   document.getElementById('btn-add-carteira').addEventListener('click', function(){ carteiraAddRow(null); });
@@ -1159,9 +1179,10 @@ tbody tr:hover{background:#fafaf8}
       document.getElementById('c-retiradas-display').textContent = res.data.retiradas || '—';
       document.getElementById('c-reagenciados-display').textContent = res.data.imoveis_reagenciados || '—';
       setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
-      var s = (res.data.novas_captacoes||0) + (res.data.imoveis_reagenciados||0) - (res.data.retiradas||0);
-      document.getElementById('c-saldo').textContent = (s >= 0 ? '+' : '') + s;
-      document.getElementById('kpi-saldo-com').classList.toggle('neg', s < 0);
+      var alugadosInd = await countAlugadosComissoes(mes);
+      var s = calcSaldoCarteira(res.data.imoveis_disponiveis, res.data.novas_captacoes, res.data.retiradas, res.data.imoveis_reagenciados, alugadosInd);
+      document.getElementById('c-saldo').textContent = s === null ? '—' : (s >= 0 ? '+' : '') + s;
+      document.getElementById('kpi-saldo-com').classList.toggle('neg', s !== null && s < 0);
     } else {
       document.getElementById('c-captacoes-display').textContent = '—';
       document.getElementById('c-retiradas-display').textContent = '—';
@@ -1222,11 +1243,14 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('com-month').value = mes;
     if (!sbClient) return;
 
+    var disponiveisValor = null;
     var res = await sbClient.from('comercial_indicadores').select('imoveis_disponiveis').eq('mes', mes).single();
     if (res.data) {
-      setDisponiveisDisplay(res.data.imoveis_disponiveis, false);
+      disponiveisValor = res.data.imoveis_disponiveis;
+      setDisponiveisDisplay(disponiveisValor, false);
     } else {
       var calc = await calcDisponiveisParaMes(mes);
+      disponiveisValor = calc.valor;
       setDisponiveisDisplay(calc.valor, calc.valor !== null);
     }
 
@@ -1235,7 +1259,9 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('gc-captacoes').textContent = gcCounts.captacoes;
     document.getElementById('gc-retiradas').textContent = gcCounts.retiradas;
     document.getElementById('gc-reagenciados').textContent = gcCounts.reagenciados;
-    recalcComercial(gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados);
+
+    var alugados = await countAlugadosComissoes(mes);
+    recalcComercial(disponiveisValor, gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados, alugados);
   }
 
   document.getElementById('btn-save-com').addEventListener('click', async function(){
@@ -1264,10 +1290,11 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('gc-captacoes').textContent = gcCounts.captacoes;
     document.getElementById('gc-retiradas').textContent = gcCounts.retiradas;
     document.getElementById('gc-reagenciados').textContent = gcCounts.reagenciados;
-    recalcComercial(gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados);
 
     var calc = await calcDisponiveisParaMes(mes);
     var disponiveis = calc.valor !== null ? calc.valor : (parseInt(document.getElementById('c-disponiveis').value) || 0);
+    var alugados = await countAlugadosComissoes(mes);
+    recalcComercial(disponiveis, gcCounts.captacoes, gcCounts.retiradas, gcCounts.reagenciados, alugados);
 
     var payload = {
       mes: mes,
