@@ -233,6 +233,27 @@ tbody tr:hover{background:#fafaf8}
         <div class="month-picker"><label>Mês:</label><select class="month-sel" id="com-month"></select></div>
       </div>
     </div>
+
+    <div class="page-header" style="margin-bottom:16px">
+      <div class="page-title" style="font-size:15px">Comissões do mês</div>
+      <div class="page-sub">Calculado a partir dos contratos lançados no relatório de Comissões</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Negócios fechados</div><div class="kpi-value" id="ci-negocios" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Total de contratos no mês</div></div>
+      <div class="kpi"><div class="kpi-label">Valor total de comissão</div><div class="kpi-value" id="ci-total-comissao" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Soma de aluguel × tx. adm.</div></div>
+      <div class="kpi"><div class="kpi-label">Valor total de tx. intermediação</div><div class="kpi-value" id="ci-total-interm" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Soma de aluguel × tx. interm.</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — valor tx. adm.</div><div class="kpi-value" id="ci-tm-adm-valor" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio de tx. adm. por contrato</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — % tx. adm.</div><div class="kpi-value" id="ci-tm-adm-pct" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">% médio de tx. adm. por contrato</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — valor tx. intermediação</div><div class="kpi-value" id="ci-tm-interm-valor" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio de tx. interm. por contrato</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — % tx. intermediação</div><div class="kpi-value" id="ci-tm-interm-pct" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">% médio de tx. interm. por contrato</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — tx. interm. (só com taxa)</div><div class="kpi-value" id="ci-tm-interm-comfee" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio, só contratos com tx. interm. &gt; 0</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio — % tx. interm. (só com taxa)</div><div class="kpi-value" id="ci-tm-interm-comfee-pct" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">% médio, só contratos com tx. interm. &gt; 0</div></div>
+    </div>
+
+    <div class="page-header" style="margin-bottom:16px">
+      <div class="page-title" style="font-size:15px">Carteira</div>
+      <div class="page-sub">Disponibilidade e movimentação de imóveis</div>
+    </div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">Imóveis disponíveis</div><div class="kpi-value" id="c-disponiveis-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><input type="hidden" id="c-disponiveis"><div class="kpi-hint" id="c-disponiveis-hint">Calculado automaticamente</div></div>
       <div class="kpi"><div class="kpi-label">Novas captações</div><div class="kpi-value" id="c-captacoes-display" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Imóveis captados no mês</div></div>
@@ -272,21 +293,6 @@ tbody tr:hover{background:#fafaf8}
           <canvas id="com-donut-tipologia" role="img" aria-label="Gráfico de rosca com a tipologia dos imóveis">Dados de tipologia dos imóveis do mês.</canvas>
         </div>
       </div>
-    </div>
-
-    <div class="page-header" style="margin-bottom:16px">
-      <div class="page-title" style="font-size:15px">Comissões do mês</div>
-      <div class="page-sub">Calculado a partir dos contratos lançados no relatório de Comissões</div>
-    </div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Negócios fechados</div><div class="kpi-value" id="ci-negocios" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">Total de contratos no mês</div></div>
-      <div class="kpi"><div class="kpi-label">Valor total de comissão</div><div class="kpi-value" id="ci-total-comissao" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Soma de aluguel × tx. adm.</div></div>
-      <div class="kpi"><div class="kpi-label">Valor total de tx. intermediação</div><div class="kpi-value" id="ci-total-interm" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Soma de aluguel × tx. interm.</div></div>
-      <div class="kpi"><div class="kpi-label">Ticket médio — valor tx. adm.</div><div class="kpi-value" id="ci-tm-adm-valor" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio de tx. adm. por contrato</div></div>
-      <div class="kpi"><div class="kpi-label">Ticket médio — % tx. adm.</div><div class="kpi-value" id="ci-tm-adm-pct" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">% médio de tx. adm. por contrato</div></div>
-      <div class="kpi"><div class="kpi-label">Ticket médio — valor tx. intermediação</div><div class="kpi-value" id="ci-tm-interm-valor" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio de tx. interm. por contrato</div></div>
-      <div class="kpi"><div class="kpi-label">Ticket médio — % tx. intermediação</div><div class="kpi-value" id="ci-tm-interm-pct" style="font-family:monospace;font-size:32px;font-weight:600;line-height:1">—</div><div class="kpi-hint">% médio de tx. interm. por contrato</div></div>
-      <div class="kpi"><div class="kpi-label">Ticket médio — tx. interm. (só com taxa)</div><div class="kpi-value" id="ci-tm-interm-comfee" style="font-family:monospace;font-size:22px;font-weight:600;line-height:1.1">—</div><div class="kpi-hint">Valor médio, só contratos com tx. interm. &gt; 0</div></div>
     </div>
   </div>
 
@@ -1214,7 +1220,7 @@ tbody tr:hover{background:#fafaf8}
     var n = linhas.length;
 
     var totalAdm = 0, totalInterm = 0, somaPctAdm = 0, somaPctInterm = 0;
-    var intermComTaxa = 0, qtdComTaxa = 0;
+    var intermComTaxa = 0, somaPctIntermComTaxa = 0, qtdComTaxa = 0;
     linhas.forEach(function(l){
       var aluguel = parseFloat(l.valor_aluguel) || 0;
       var pctAdm = parseFloat(l.tx_administracao) || 0;
@@ -1224,7 +1230,7 @@ tbody tr:hover{background:#fafaf8}
       totalInterm += valorInterm;
       somaPctAdm += pctAdm;
       somaPctInterm += pctInterm;
-      if (pctInterm > 0) { intermComTaxa += valorInterm; qtdComTaxa++; }
+      if (pctInterm > 0) { intermComTaxa += valorInterm; somaPctIntermComTaxa += pctInterm; qtdComTaxa++; }
     });
 
     var pct = function(v){ return v.toFixed(1).replace('.', ',') + '%'; };
@@ -1236,6 +1242,7 @@ tbody tr:hover{background:#fafaf8}
     document.getElementById('ci-tm-interm-valor').textContent = n ? fmtBRL(totalInterm / n) : '—';
     document.getElementById('ci-tm-interm-pct').textContent = n ? pct(somaPctInterm / n) : '—';
     document.getElementById('ci-tm-interm-comfee').textContent = qtdComTaxa ? fmtBRL(intermComTaxa / qtdComTaxa) : '—';
+    document.getElementById('ci-tm-interm-comfee-pct').textContent = qtdComTaxa ? pct(somaPctIntermComTaxa / qtdComTaxa) : '—';
   }
 
   async function loadComercialOrigemFianca() {
